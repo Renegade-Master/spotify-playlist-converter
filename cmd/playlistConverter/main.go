@@ -23,5 +23,5 @@ func main() {
 	log.Printf("Spotify URI: [%s]", string(user.URI))
 	log.Printf("Endpoint: [%s]", user.Endpoint)
 
-	log.Printf("Playlist count: [%s]", user.)
+	spotify.Authenticate()
 }

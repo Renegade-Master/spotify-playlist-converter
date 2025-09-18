@@ -16,6 +16,7 @@ func NewSpotifyUser(ctx context.Context, userId string) *spotify.User {
 		ClientSecret: os.Getenv("SPOTIFY_SECRET"),
 		TokenURL:     spotifyauth.TokenURL,
 	}
+
 	token, err := config.Token(ctx)
 	if err != nil {
 		log.Fatalf("couldn't get token: %v", err)
