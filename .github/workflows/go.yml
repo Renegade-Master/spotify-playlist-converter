@@ -39,5 +39,5 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: binaries
+        name: binaries-${{ matrix.platform }}
         path: out/*
