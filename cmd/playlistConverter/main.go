@@ -4,11 +4,8 @@ import (
 	"context"
 	"flag"
 	"log"
-	"os"
 
-	"github.com/zmb3/spotify/v2"
-	spotifyauth "github.com/zmb3/spotify/v2/auth"
-	"golang.org/x/oauth2/clientcredentials"
+	"github.com/Renegade-Master/spotify-playlist-converter/internal/spotify"
 )
 
 func main() {
@@ -19,24 +16,12 @@ func main() {
 
 	ctx := context.Background()
 
-	config := &clientcredentials.Config{
-		ClientID:     os.Getenv("SPOTIFY_ID"),
-		ClientSecret: os.Getenv("SPOTIFY_SECRET"),
-		TokenURL:     spotifyauth.TokenURL,
-	}
-	token, err := config.Token(ctx)
-	if err != nil {
-		log.Fatalf("couldn't get token: %v", err)
-	}
+	user := spotify.NewSpotifyUser(ctx, *userID)
 
-	httpClient := spotifyauth.New().Client(ctx, token)
-	client := spotify.New(httpClient)
+	log.Printf("User ID: [%s]", user.ID)
+	log.Printf("Display name: [%s]", user.DisplayName)
+	log.Printf("Spotify URI: [%s]", string(user.URI))
+	log.Printf("Endpoint: [%s]", user.Endpoint)
 
-	user, _ := client.GetUsersPublicProfile(ctx, spotify.ID(*userID))
-
-	log.Println("User ID:", user.ID)
-	log.Println("Display name:", user.DisplayName)
-	log.Println("Spotify URI:", string(user.URI))
-	log.Println("Endpoint:", user.Endpoint)
-	log.Println("Followers:", user.Followers.Count)
+	log.Printf("Playlist count: [%s]", user.)
 }
