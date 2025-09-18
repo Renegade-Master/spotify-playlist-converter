@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log"
 
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/spotify"
@@ -11,17 +10,20 @@ import (
 func main() {
 	log.Printf("PlaylistConverter")
 
-	userID := flag.String("user", "", "the Spotify user ID to look up")
-	flag.Parse()
-
 	ctx := context.Background()
 
-	user := spotify.NewSpotifyUser(ctx, *userID)
+	spotifyClient := spotify.GetSpotifyClient()
 
-	log.Printf("User ID: [%s]", user.ID)
-	log.Printf("Display name: [%s]", user.DisplayName)
-	log.Printf("Spotify URI: [%s]", string(user.URI))
-	log.Printf("Endpoint: [%s]", user.Endpoint)
+	spotifyPrivateUser := spotify.GetSpotifyPrivateUser(ctx, *spotifyClient)
+	log.Printf("User ID: [%s]", spotifyPrivateUser.ID)
+	log.Printf("Display name: [%s]", spotifyPrivateUser.DisplayName)
+	log.Printf("Spotify URI: [%s]", string(spotifyPrivateUser.URI))
+	log.Printf("Endpoint: [%s]", spotifyPrivateUser.Endpoint)
 
-	spotify.Authenticate()
+	playlists, _ := spotifyClient.GetPlaylistsForUser(ctx, spotifyPrivateUser.ID)
+
+	log.Printf("Found [%d] playlists", len(playlists.Playlists))
+	for idx, playlist := range playlists.Playlists {
+		log.Printf("Playlist [%d]: [%s]", idx, playlist.Name)
+	}
 }

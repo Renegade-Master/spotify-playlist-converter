@@ -19,45 +19,55 @@ import (
 const redirectURI = "http://127.0.0.1:8000/callback"
 
 var (
-	auth  = spotifyauth.New(spotifyauth.WithRedirectURL(redirectURI), spotifyauth.WithScopes(spotifyauth.ScopeUserReadPrivate))
+	auth = spotifyauth.New(spotifyauth.WithRedirectURL(redirectURI), spotifyauth.WithScopes(
+		spotifyauth.ScopeUserReadPrivate,
+		spotifyauth.ScopePlaylistReadPrivate,
+		spotifyauth.ScopePlaylistReadCollaborative,
+	))
 	ch    = make(chan *spotify.Client)
 	state = uuid.New().String()
 )
 
-func Authenticate() *spotify.PrivateUser {
+func GetSpotifyClient() *spotify.Client {
 	// first start an HTTP server
 	http.HandleFunc("/callback", completeAuth)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Got request for:", r.URL.String())
 	})
+
 	go func() {
-		err := http.ListenAndServe(":8080", nil)
+		log.Println("Starting HTTP server")
+		err := http.ListenAndServe(":8000", nil)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}()
 
 	url := auth.AuthURL(state)
-	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", url)
-	err := browser.OpenURL(url)
-	if err != nil {
-		log.Fatalf("Could not open browser: %v", err)
+	log.Println("Please log in to Spotify by visiting the following page in your browser:", url)
+
+	if err := browser.OpenURL(url); err != nil {
+		log.Printf("Could not open browser automatically. Please visit the URL above to log in: Error: [%v]", err)
 	}
 
 	// wait for auth to complete
 	client := <-ch
 
-	// use the client to make calls that require authorization
-	user, err := client.CurrentUser(context.Background())
+	return client
+}
+
+func GetSpotifyPrivateUser(ctx context.Context, client spotify.Client) *spotify.PrivateUser {
+	user, err := client.CurrentUser(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("You are logged in as:", user.ID)
 
 	return user
 }
 
 func completeAuth(w http.ResponseWriter, r *http.Request) {
+	log.Println("Got request for:", r.URL.String())
+
 	tok, err := auth.Token(r.Context(), state, r)
 	if err != nil {
 		http.Error(w, "Couldn't get token", http.StatusForbidden)
