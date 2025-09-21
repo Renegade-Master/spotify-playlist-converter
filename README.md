@@ -31,3 +31,8 @@ YouTube Music API:
 
 Google API Samples:
 * https://github.com/youtube/api-samples
+
+YouTube Videos:
+* https://www.youtube.com/watch?v=0aR9xvrRP2g
+* https://www.youtube.com/watch?v=QY8dhl1EQfI
+* https://www.youtube.com/watch?v=Q49gGXCCY_4&list=PL_cUvD4qzbkx_-4roA33KKz37BDX_JAZb&index=2
