@@ -10,9 +10,44 @@ type YouTube struct {
 	client *youtube.Service
 }
 
+type ChannelResource string
+
+const (
+	Playlists ChannelResource = "playlists"
+	Channels                  = "channels"
+)
+
 func NewYouTube() YouTube {
 	youtubeService := createYouTubeService()
 	return YouTube{client: youtubeService}
+}
+
+func (yt YouTube) ListChannels() {
+	// List user's playlists
+	call := yt.client.Channels.List([]string{"snippet", "contentDetails"})
+	call = call.Mine(true)
+	call = call.MaxResults(50)
+
+	response, err := call.Do()
+	if err != nil {
+		log.Fatalf("Error retrieving channels: %v", err)
+	}
+
+	log.Println("Your YouTube Music Channels:")
+	log.Println("========================================")
+
+	if len(response.Items) == 0 {
+		log.Println("No channels found.")
+	} else {
+		for i, channel := range response.Items {
+			log.Printf("%d. %s\n", i+1, channel.Snippet.Title)
+			log.Printf("   ID: %s\n", channel.Id)
+			log.Printf("   Title: %s\n", channel.Snippet.Title)
+			log.Printf("   Description: %s\n", channel.Snippet.Description)
+			log.Printf("   Custom URL: %s\n", channel.Snippet.CustomUrl)
+			log.Println()
+		}
+	}
 }
 
 func (yt YouTube) ListPlaylists() {
