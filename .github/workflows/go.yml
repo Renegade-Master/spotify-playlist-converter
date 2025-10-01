@@ -28,9 +28,9 @@ jobs:
 
     - name: Create Embed Files
       run:
-        echo "${{secrets.GOOGLE_CLIENT_SECRET}}" > internal/youtube/google_client_secret.json
-        echo "${{secrets.SPOTIFY_CLIENT_ID}}" > internal/spotify/spotify_client_id.txt
-        echo "${{secrets.SPOTIFY_CLIENT_SECRET}}" > internal/spotify/spotify_client_secret.txt
+        echo "${{secrets.GOOGLE_CLIENT_SECRET}}" > internal/youtube/google_client_secret.json;
+        echo "${{secrets.SPOTIFY_CLIENT_ID}}" > internal/spotify/spotify_client_id.txt;
+        echo "${{secrets.SPOTIFY_CLIENT_SECRET}}" > internal/spotify/spotify_client_secret.txt;
 
     - name: Build
       run: go build -v -tags generate ./...
