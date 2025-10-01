@@ -43,9 +43,6 @@ func getSpotifyClient() *spotify.Client {
 	}
 
 	http.HandleFunc("/callback", completeAuth)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Got request for:", r.URL.String())
-	})
 
 	go func() {
 		log.Println("Starting HTTP server")

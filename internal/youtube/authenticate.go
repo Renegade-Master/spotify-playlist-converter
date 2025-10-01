@@ -4,11 +4,11 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -17,6 +17,8 @@ import (
 
 //go:embed google_client_secret.json
 var googleAuthFile string
+
+var ch = make(chan string)
 
 func createYouTubeService() *youtube.Service {
 	ctx := context.Background()
@@ -58,20 +60,52 @@ func getClient(config *oauth2.Config) *http.Client {
 
 // getTokenFromWeb requests a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+	http.HandleFunc("/", completeAuth)
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Got request for favicon.ico")
+	})
+
+	go func() {
+		log.Println("Starting HTTP server")
+		err := http.ListenAndServe(":8080", nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	log.Printf("Go to the following link in your browser:\n%v\n", authURL)
-	log.Println("\nEnter the authorization code:")
 
-	var authCode string
-	if _, err := fmt.Scan(&authCode); err != nil {
-		log.Fatalf("Unable to read authorization code: %v", err)
+	if err := browser.OpenURL(authURL); err != nil {
+		log.Printf("Could not open browser automatically. Please visit the URL above to log in: Error: [%v]", err)
 	}
+
+	authCode := <-ch
 
 	tok, err := config.Exchange(context.TODO(), authCode)
 	if err != nil {
 		log.Fatalf("Unable to retrieve token from web: %v", err)
 	}
 	return tok
+}
+
+func completeAuth(w http.ResponseWriter, r *http.Request) {
+	log.Println("Got request for:", r.URL.String())
+
+	values := r.URL.Query()
+	if e := values.Get("error"); e != "" {
+		log.Fatalf(`return nil, errors.New("spotify: auth failed - " + e)`)
+	}
+	code := values.Get("code")
+	if code == "" {
+		log.Fatalf(`return nil, errors.New("spotify: didn't get access code")`)
+	}
+
+	log.Printf("Got code: %s\n", code)
+
+	r.Context().Done()
+
+	ch <- code
 }
 
 // tokenFromFile retrieves a token from a local file.
