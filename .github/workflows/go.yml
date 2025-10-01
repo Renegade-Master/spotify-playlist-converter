@@ -10,14 +10,14 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
+    environment: Main
     strategy:
       matrix:
         platform: [windows, linux, darwin]
-    
+
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
 
@@ -26,16 +26,19 @@ jobs:
       with:
         go-version: '1.25'
 
+    - name: Create Embed Files
+      run: echo ${{secrets.GOOGLE_CLIENT_SECRET}} > internal/youtube/google_client_secret.json
+      
     - name: Build
-      run: go build -v ./...
+      run: go build -v -tags generate ./...
 
     - name: Test
-      run: go test -v ./...
+      run: go test -v -tags generate ./...
 
     - name: Test
       env:
         GOOS: ${{ matrix.platform }}
-      run: go build -v -o out/ ./...
+      run: go build -v -tags generate -o out/ ./...
 
     - uses: actions/upload-artifact@v4
       with:
