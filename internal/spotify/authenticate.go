@@ -25,8 +25,7 @@ var (
 	state = uuid.New().String()
 )
 
-func GetSpotifyClient() *spotify.Client {
-	// first start an HTTP server
+func getSpotifyClient() *spotify.Client {
 	http.HandleFunc("/callback", completeAuth)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Got request for:", r.URL.String())
@@ -53,7 +52,7 @@ func GetSpotifyClient() *spotify.Client {
 	return client
 }
 
-func GetSpotifyPrivateUser(ctx context.Context, client spotify.Client) *spotify.PrivateUser {
+func getSpotifyPrivateUser(ctx context.Context, client spotify.Client) *spotify.PrivateUser {
 	user, err := client.CurrentUser(ctx)
 	if err != nil {
 		log.Fatal(err)
@@ -76,7 +75,6 @@ func completeAuth(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("State mismatch: %s != %s\n", st, state)
 	}
 
-	// use the token to get an authenticated client
 	client := spotify.New(auth.Client(r.Context(), tok))
 	fmt.Fprintf(w, "Login Completed!")
 	ch <- client
