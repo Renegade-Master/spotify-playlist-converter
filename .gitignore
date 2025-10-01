@@ -1,3 +1,6 @@
+### Project Specific ###
+auth/
+
 # Created by https://www.toptal.com/developers/gitignore/api/goland+all,go
 # Edit at https://www.toptal.com/developers/gitignore?templates=goland+all,go
 
@@ -113,4 +116,3 @@ fabric.properties
 !.idea/runConfigurations
 
 # End of https://www.toptal.com/developers/gitignore/api/goland+all,go
-

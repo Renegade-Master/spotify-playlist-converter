@@ -25,7 +25,7 @@ var (
 	state = uuid.New().String()
 )
 
-func GetSpotifyClient() *spotify.Client {
+func getSpotifyClient() *spotify.Client {
 	http.HandleFunc("/callback", completeAuth)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Got request for:", r.URL.String())
@@ -52,7 +52,7 @@ func GetSpotifyClient() *spotify.Client {
 	return client
 }
 
-func GetSpotifyPrivateUser(ctx context.Context, client spotify.Client) *spotify.PrivateUser {
+func getSpotifyPrivateUser(ctx context.Context, client spotify.Client) *spotify.PrivateUser {
 	user, err := client.CurrentUser(ctx)
 	if err != nil {
 		log.Fatal(err)

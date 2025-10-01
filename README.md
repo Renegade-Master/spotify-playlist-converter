@@ -24,6 +24,9 @@ Spotify API:
 * https://github.com/zmb3/spotify
 * https://arkoes.medium.com/using-spotify-web-api-in-go-fa10373d5efb
 
+YouTube QuickStart
+* https://developers.google.com/youtube/v3/quickstart/go
+
 YouTube Music API:
 * https://pkg.go.dev/github.com/prettyirrelevant/ytmusicapi
 * https://ytmusicapi.readthedocs.io/en/stable/setup/browser.html#copy-authentication-headers
