@@ -2,9 +2,11 @@ package spotify
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/pkg/browser"
@@ -15,12 +17,22 @@ import (
 
 const redirectURI = "http://127.0.0.1:8000/callback"
 
+//go:embed spotify_client_id.txt
+var clientId string
+
+//go:embed spotify_client_secret.txt
+var clientSecret string
+
 var (
-	auth = spotifyauth.New(spotifyauth.WithRedirectURL(redirectURI), spotifyauth.WithScopes(
-		spotifyauth.ScopeUserReadPrivate,
-		spotifyauth.ScopePlaylistReadPrivate,
-		spotifyauth.ScopePlaylistReadCollaborative,
-	))
+	auth = spotifyauth.New(
+		spotifyauth.WithRedirectURL(redirectURI),
+		spotifyauth.WithScopes(
+			spotifyauth.ScopeUserReadPrivate,
+			spotifyauth.ScopePlaylistReadPrivate,
+			spotifyauth.ScopePlaylistReadCollaborative,
+		),
+		spotifyauth.WithClientID(strings.TrimSuffix(clientId, "\n")),
+		spotifyauth.WithClientSecret(strings.TrimSuffix(clientSecret, "\n")))
 	ch    = make(chan *spotify.Client)
 	state = uuid.New().String()
 )

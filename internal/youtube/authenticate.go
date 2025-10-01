@@ -2,6 +2,7 @@ package youtube
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,14 +15,14 @@ import (
 	"google.golang.org/api/youtube/v3"
 )
 
+//go:embed google_client_secret.json
+var googleAuthFile string
+
 func createYouTubeService() *youtube.Service {
 	ctx := context.Background()
 
 	// Read credentials from file
-	b, err := os.ReadFile("auth/google_client_secret.json")
-	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
-	}
+	b := []byte(googleAuthFile)
 
 	// Configure OAuth2 with required scopes
 	config, err := google.ConfigFromJSON(b, youtube.YoutubeReadonlyScope)
