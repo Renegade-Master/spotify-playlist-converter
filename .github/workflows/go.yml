@@ -27,7 +27,7 @@ jobs:
         go-version: '1.25'
 
     - name: Create Embed Files
-      run: echo ${{secrets.GOOGLE_CLIENT_SECRET}} > internal/youtube/google_client_secret.json
+      run: echo "${{secrets.GOOGLE_CLIENT_SECRET}}" > internal/youtube/google_client_secret.json
       
     - name: Build
       run: go build -v -tags generate ./...
