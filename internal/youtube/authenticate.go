@@ -21,6 +21,10 @@ var googleAuthFile string
 func createYouTubeService() *youtube.Service {
 	ctx := context.Background()
 
+	if googleAuthFile == "" {
+		log.Fatal("Google Client Secret is blank. This binary was compiled incorrectly.")
+	}
+
 	// Read credentials from file
 	b := []byte(googleAuthFile)
 

@@ -38,6 +38,10 @@ var (
 )
 
 func getSpotifyClient() *spotify.Client {
+	if clientId == "" || clientSecret == "" {
+		log.Fatal("SPOTIFY_ID or SPOTIFY_SECRET are blank. This binary was compiled incorrectly.")
+	}
+
 	http.HandleFunc("/callback", completeAuth)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Got request for:", r.URL.String())
