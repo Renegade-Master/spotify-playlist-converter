@@ -14,7 +14,8 @@ jobs:
     environment: Main
     strategy:
       matrix:
-        platform: [windows, linux, darwin, android]
+        #platform: [windows, linux, darwin, android]
+        platform: [windows, linux, darwin]
 
     runs-on: ubuntu-latest
 
