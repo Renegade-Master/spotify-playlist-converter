@@ -12,11 +12,6 @@ type YouTube struct {
 
 type ChannelResource string
 
-const (
-	Playlists ChannelResource = "playlists"
-	Channels                  = "channels"
-)
-
 func NewYouTube() YouTube {
 	youtubeService := createYouTubeService()
 	return YouTube{client: youtubeService}
@@ -72,6 +67,33 @@ func (yt YouTube) ListPlaylists() {
 			log.Printf("   ID: %s\n", playlist.Id)
 			log.Printf("   Description: %s\n", playlist.Snippet.Description)
 			log.Printf("   Videos: %d\n", playlist.ContentDetails.ItemCount)
+			log.Println()
+		}
+	}
+}
+
+func (yt YouTube) FindTrack(query string) {
+	log.Printf("Searching for: [%s]\n", query)
+
+	call := yt.client.Search.List([]string{"snippet"})
+	call = call.Q(query)
+	call = call.MaxResults(5)
+
+	response, err := call.Do()
+	if err != nil {
+		log.Fatalf("Error retrieving track: %s", err)
+	}
+
+	log.Println("Your YouTube Music Search Results:")
+	log.Println("========================================")
+
+	if len(response.Items) == 0 {
+		log.Println("No tracks found.")
+	} else {
+		for i, track := range response.Items {
+			log.Printf("%d. %s\n", i+1, track.Snippet.Title)
+			log.Printf("   ID: %s\n", track.Id.VideoId)
+			log.Printf("   Description: %s\n", track.Snippet.Description)
 			log.Println()
 		}
 	}

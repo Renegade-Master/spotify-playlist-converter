@@ -49,12 +49,15 @@ func createYouTubeService() *youtube.Service {
 
 // getClient retrieves a token, saves the token, and returns the configured client.
 func getClient(config *oauth2.Config) *http.Client {
-	tokFile := "auth/youtube_client_secret.json"
-	tok, err := tokenFromFile(tokFile)
-	if err != nil {
-		tok = getTokenFromWeb(config)
-		saveToken(tokFile, tok)
-	}
+	//tokFile := "auth/youtube_client_secret.json"
+
+	//tok, err := tokenFromFile(tokFile)
+	//if err != nil {
+	//	tok = getTokenFromWeb(config)
+	//	saveToken(tokFile, tok)
+	//}
+
+	tok := getTokenFromWeb(config)
 	return config.Client(context.Background(), tok)
 }
 
@@ -67,7 +70,7 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 
 	go func() {
 		log.Println("Starting HTTP server")
-		err := http.ListenAndServe(":8080", nil)
+		err := http.ListenAndServe(":8001", nil)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -100,8 +103,6 @@ func completeAuth(w http.ResponseWriter, r *http.Request) {
 	if code == "" {
 		log.Fatalf(`return nil, errors.New("spotify: didn't get access code")`)
 	}
-
-	log.Printf("Got code: %s\n", code)
 
 	r.Context().Done()
 

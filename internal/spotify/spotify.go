@@ -34,6 +34,40 @@ func (s Spotify) ListPlaylists() {
 
 	log.Printf("Found [%d] playlists", len(playlists.Playlists))
 	for idx, playlist := range playlists.Playlists {
-		log.Printf("Playlist [%d]: [%s]", idx, playlist.Name)
+		log.Printf("%d. %s\n", idx+1, playlist.Name)
+		log.Printf("   Description: %s\n", playlist.Description)
+		log.Printf("   ID: %s\n", playlist.ID)
+		log.Printf("   URI: %s\n", playlist.URI)
+		log.Println()
+	}
+}
+
+func (s Spotify) GetPlaylists() []spotify.SimplePlaylist {
+	playlists, _ := s.client.GetPlaylistsForUser(context.Background(), s.privateClient.ID)
+
+	return playlists.Playlists
+}
+
+func (s Spotify) GetPlaylist(playlistId spotify.ID) *spotify.FullPlaylist {
+	playlist, _ := s.client.GetPlaylist(context.Background(), playlistId)
+
+	return playlist
+}
+
+func (s Spotify) ListPlaylist(playlistId spotify.ID) {
+	playlist, err := s.client.GetPlaylistItems(context.Background(), playlistId)
+	if err != nil {
+		log.Fatalf("Error retrieving playlist: [%s]", err)
+	}
+
+	log.Printf("Found [%d] Tracks", len(playlist.Items))
+	for idx, track := range playlist.Items {
+		log.Printf("%d. %s\n", idx+1, track.Track.Track.Name)
+		log.Printf("   Album: %s\n", track.Track.Track.Album.Name)
+		log.Printf("   Artists: %s\n", track.Track.Track.Artists)
+		log.Printf("   Duration: %s\n", track.Track.Track.Duration)
+		log.Printf("   ID: %s\n", track.Track.Track.ID)
+		log.Printf("   URI: %s\n", track.Track.Track.URI)
+		log.Println()
 	}
 }
