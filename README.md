@@ -8,15 +8,7 @@ Run the following command on the binary:
 $ playlistConverter
 ```
 
-A webpage will be opened in your browser, or you will be shown a URL to open manually.
-
-## Notes
-
-YTMusicAPI is not working as smoothly as I would like.
-
-When retrieving your Authentication Headers, you must apply the following changes:
-1. Convert to JSON
-2. Change 'Cookies' to 'cookies'
+A webpage will be opened in your browser, or you will be shown a URL to open manually, for both Spotify and YouTube.
 
 ## References
 
@@ -26,11 +18,6 @@ Spotify API:
 
 YouTube QuickStart
 * https://developers.google.com/youtube/v3/quickstart/go
-
-YouTube Music API:
-* https://pkg.go.dev/github.com/prettyirrelevant/ytmusicapi
-* https://ytmusicapi.readthedocs.io/en/stable/setup/browser.html#copy-authentication-headers
-* https://github.com/sigma67/ytmusicapi
 
 Google API Samples:
 * https://github.com/youtube/api-samples

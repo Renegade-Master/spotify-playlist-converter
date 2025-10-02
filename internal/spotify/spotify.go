@@ -65,7 +65,7 @@ func (s Spotify) ListPlaylist(playlistId spotify.ID) {
 		log.Printf("%d. %s\n", idx+1, track.Track.Track.Name)
 		log.Printf("   Album: %s\n", track.Track.Track.Album.Name)
 		log.Printf("   Artists: %s\n", track.Track.Track.Artists)
-		log.Printf("   Duration: %s\n", track.Track.Track.Duration)
+		log.Printf("   Duration: %d\n", track.Track.Track.Duration)
 		log.Printf("   ID: %s\n", track.Track.Track.ID)
 		log.Printf("   URI: %s\n", track.Track.Track.URI)
 		log.Println()
