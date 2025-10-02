@@ -1,6 +1,4 @@
 /*
- * Copyright (c) 2025.
- *
  *    Copyright (c) 2025 [renegade@renegade-master.com]
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
