@@ -18,6 +18,13 @@ package util
 
 import "os/exec"
 
+type Platform string
+
+const (
+	SPOTIFY       Platform = "SPOTIFY"
+	YOUTUBE_MUSIC Platform = "YOUTUBE_MUSIC"
+)
+
 // CheckIfCommandExists checks if executable 'e' is in PATH
 func CheckIfCommandExists(e ...string) bool {
 	anyCommandFound := false
