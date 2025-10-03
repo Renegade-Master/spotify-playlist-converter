@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="build" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="spotify-playlist-converter" />
+    <working_directory value="$PROJECT_DIR$" />
+    <go_parameters value="-tags generate" />
+    <kind value="PACKAGE" />
+    <package value="github.com/Renegade-Master/spotify-playlist-converter/" />
+    <directory value="$PROJECT_DIR$/..." />
+    <filePath value="$PROJECT_DIR$/cmd/playlistConverter/main.go" />
+    <output_directory value="out" />
+    <option name="run" value="false" />
+    <method v="2" />
+  </configuration>
+</component>
