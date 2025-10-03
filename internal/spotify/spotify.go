@@ -18,8 +18,10 @@ package spotify
 
 import (
 	"context"
+	"fmt"
 	"log"
 
+	"github.com/Renegade-Master/spotify-playlist-converter/internal/youtube"
 	"github.com/zmb3/spotify/v2"
 )
 
@@ -85,5 +87,14 @@ func (s Spotify) ListPlaylist(playlistId spotify.ID) {
 		log.Printf("   ID: %s\n", track.Track.Track.ID)
 		log.Printf("   URI: %s\n", track.Track.Track.URI)
 		log.Println()
+	}
+}
+
+func (s Spotify) PlaylistToYouTube(playlistId spotify.ID, youtubeClient *youtube.YouTube) {
+	log.Printf("Converting Playlist [%s] to YouTube...", playlistId)
+
+	playlist := s.GetPlaylist(playlistId)
+	for _, track := range playlist.Tracks.Tracks {
+		youtubeClient.FindTrack(fmt.Sprintf("%s %s", track.Track.Name, track.Track.Artists[0].Name), 1)
 	}
 }

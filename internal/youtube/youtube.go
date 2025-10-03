@@ -88,12 +88,12 @@ func (yt YouTube) ListPlaylists() {
 	}
 }
 
-func (yt YouTube) FindTrack(query string) {
+func (yt YouTube) FindTrack(query string, maxResults int64) {
 	log.Printf("Searching for: [%s]\n", query)
 
 	call := yt.client.Search.List([]string{"snippet"})
 	call = call.Q(query)
-	call = call.MaxResults(5)
+	call = call.MaxResults(maxResults)
 
 	response, err := call.Do()
 	if err != nil {
