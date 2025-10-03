@@ -88,7 +88,25 @@ func (yt YouTube) ListPlaylists() {
 	}
 }
 
-func (yt YouTube) FindTrack(query string, maxResults int64) {
+func (yt YouTube) ShowTrack(query string, maxResults int64) {
+	track := yt.FindTrack(query, maxResults)
+
+	log.Println("Your YouTube Music Search Results:")
+	log.Println("========================================")
+
+	if len(track) == 0 {
+		log.Println("No tracks found.")
+	} else {
+		for i, track := range track {
+			log.Printf("%d. %s\n", i+1, track.Snippet.Title)
+			log.Printf("   ID: %s\n", track.Id.VideoId)
+			log.Printf("   Description: %s\n", track.Snippet.Description)
+			log.Println()
+		}
+	}
+}
+
+func (yt YouTube) FindTrack(query string, maxResults int64) []*youtube.SearchResult {
 	log.Printf("Searching for: [%s]\n", query)
 
 	call := yt.client.Search.List([]string{"snippet"})
@@ -100,17 +118,10 @@ func (yt YouTube) FindTrack(query string, maxResults int64) {
 		log.Fatalf("Error retrieving track: %s", err)
 	}
 
-	log.Println("Your YouTube Music Search Results:")
-	log.Println("========================================")
-
 	if len(response.Items) == 0 {
 		log.Println("No tracks found.")
+		return []*youtube.SearchResult{}
 	} else {
-		for i, track := range response.Items {
-			log.Printf("%d. %s\n", i+1, track.Snippet.Title)
-			log.Printf("   ID: %s\n", track.Id.VideoId)
-			log.Printf("   Description: %s\n", track.Snippet.Description)
-			log.Println()
-		}
+		return response.Items
 	}
 }
