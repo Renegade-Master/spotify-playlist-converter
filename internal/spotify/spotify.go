@@ -98,6 +98,6 @@ func (s Spotify) PlaylistToYouTube(playlistId spotify.ID, youtubeClient *youtube
 	playlist := s.GetPlaylist(playlistId)
 	for _, track := range playlist.Tracks.Tracks {
 		ytTrack := youtubeClient.FindTrack(fmt.Sprintf("%s %s", track.Track.Name, track.Track.Artists[0].Name), 1)
-		log.Printf("Adding Track [%s] to YouTube...", ytTrack)
+		log.Printf("Adding Track [%v] to YouTube...", ytTrack)
 	}
 }
