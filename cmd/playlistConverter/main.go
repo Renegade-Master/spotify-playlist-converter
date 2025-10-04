@@ -23,8 +23,10 @@ import (
 
 func main() {
 	spotifyClient := spotify.NewSpotify()
-	newTube := youtube.NewYouTube()
+	youtubeClient := youtube.NewYouTube()
 
 	spotifyPlaylistId := spotifyClient.GetPlaylists()[0].ID
-	spotifyClient.PlaylistToYouTube(spotifyPlaylistId, &newTube)
+	spotifyClient.AddPlaylistToYouTube(spotifyPlaylistId, &youtubeClient)
+
+	spotifyClient.AddAllPlaylists(&youtubeClient)
 }

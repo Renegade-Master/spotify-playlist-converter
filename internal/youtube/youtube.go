@@ -240,7 +240,7 @@ func (yt YouTube) AddToPlaylist(playlistId string, trackId string) string {
 
 	response, err := call.Do()
 	if err != nil {
-		log.Fatalf("Error adding track to playlist: %v", err)
+		log.Fatalf("Error adding Track ID [%s] to Playlist [%s]: [%v]", trackId, playlistId, err)
 	}
 
 	return response.Id

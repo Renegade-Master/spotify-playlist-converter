@@ -90,16 +90,25 @@ func (s Spotify) ListPlaylist(playlistId spotify.ID) {
 	}
 }
 
-func (s Spotify) PlaylistToYouTube(playlistId spotify.ID, yt *youtube.YouTube) {
-	log.Printf("Converting Playlist [%s] to YouTube...", playlistId)
+func (s Spotify) AddPlaylistToYouTube(playlistId spotify.ID, yt *youtube.YouTube) {
+	ytPlayListName := s.GetPlaylist(playlistId).Name
+	log.Printf("Converting Playlist [%s] to YouTube...", ytPlayListName)
 
-	ytPlaylistId := yt.CreatePlaylist("Most Recent Spotify Playlist")
+	ytPlaylistId := yt.CreatePlaylist(ytPlayListName)
 
 	playlist := s.GetPlaylist(playlistId)
 	for _, track := range playlist.Tracks.Tracks {
 		ytTrack := yt.GetTracks(fmt.Sprintf("%s %s", track.Track.Name, track.Track.Artists[0].Name), 1)
-		log.Printf("Adding Track [%v] to YouTube...", ytTrack[0].Snippet.Title)
 
 		yt.AddToPlaylist(ytPlaylistId, ytTrack[0].Id.VideoId)
+	}
+}
+
+func (s Spotify) AddAllPlaylists(yt *youtube.YouTube) {
+	log.Println("Converting all playlists to YouTube...")
+
+	playlists := s.GetPlaylists()
+	for _, playlist := range playlists {
+		s.AddPlaylistToYouTube(playlist.ID, yt)
 	}
 }

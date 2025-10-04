@@ -4,6 +4,8 @@
 
 ## Building
 
+### Setup
+
 To build the application, there are some files which must be created:
 
 ```shell
@@ -16,6 +18,20 @@ The `spotify_client_id.txt` and `spotify_client_secret.txt` should be filled wit
 the spotify-playlist-converter Spotify Application.
 
 The `google_client_secret.json` should be filled with the Client Secret JSON file from the Google Desktop Application. 
+
+### Build
+
+To build the application, run the following command:
+
+```shell
+go build -o out/ -tags genrate ./...
+```
+
+To build for other platforms or architectures, use the following command:
+
+```shell
+GOOS=android GOARCH=arm64 go build -o out/ -tags genrate ./...
+```
 
 ## Usage
 
