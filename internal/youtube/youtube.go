@@ -26,8 +26,6 @@ type YouTube struct {
 	client *youtube.Service
 }
 
-type ChannelResource string
-
 func NewYouTube() YouTube {
 	youtubeService := createYouTubeService()
 	return YouTube{client: youtubeService}
@@ -62,23 +60,15 @@ func (yt YouTube) ListChannels() {
 }
 
 func (yt YouTube) ListPlaylists() {
-	// List user's playlists
-	call := yt.client.Playlists.List([]string{"snippet", "contentDetails"})
-	call = call.Mine(true)
-	call = call.MaxResults(50)
-
-	response, err := call.Do()
-	if err != nil {
-		log.Fatalf("Error retrieving playlists: %v", err)
-	}
+	playlists := yt.GetPlaylists()
 
 	log.Println("Your YouTube Music Playlists:")
 	log.Println("========================================")
 
-	if len(response.Items) == 0 {
+	if len(playlists) == 0 {
 		log.Println("No playlists found.")
 	} else {
-		for i, playlist := range response.Items {
+		for i, playlist := range playlists {
 			log.Printf("%d. %s\n", i+1, playlist.Snippet.Title)
 			log.Printf("   ID: %s\n", playlist.Id)
 			log.Printf("   Description: %s\n", playlist.Snippet.Description)
@@ -88,8 +78,80 @@ func (yt YouTube) ListPlaylists() {
 	}
 }
 
-func (yt YouTube) ShowTrack(query string, maxResults int64) {
-	track := yt.FindTrack(query, maxResults)
+func (yt YouTube) GetPlaylists() []*youtube.Playlist {
+	call := yt.client.Playlists.List([]string{"snippet", "contentDetails"})
+	call = call.Mine(true)
+	call = call.MaxResults(50)
+
+	response, err := call.Do()
+	if err != nil {
+		log.Fatalf("Error retrieving Playlists: %v", err)
+	}
+
+	if len(response.Items) == 0 {
+		log.Println("No playlists found.")
+		return []*youtube.Playlist{}
+	} else {
+		return response.Items
+	}
+}
+
+func (yt YouTube) GetPlaylist(playlistId string) *youtube.Playlist {
+	call := yt.client.Playlists.List([]string{"snippet", "contentDetails"})
+	call = call.Mine(true)
+	call = call.MaxResults(50)
+
+	response, err := call.Do()
+	if err != nil {
+		log.Fatalf("Error retrieving Playlists: %v", err)
+	}
+
+	if len(response.Items) == 0 {
+		log.Println("No playlists found.")
+	} else {
+		for _, playlist := range response.Items {
+			if playlist.Id == playlistId {
+				return playlist
+			}
+		}
+	}
+
+	return nil
+}
+
+func (yt YouTube) GetPlaylistItems(playlistId string) []*youtube.PlaylistItem {
+	var playlistItems []*youtube.PlaylistItem
+	var nextPageToken string
+
+	for {
+		call := yt.client.PlaylistItems.List([]string{"snippet", "contentDetails"}).
+			PlaylistId(playlistId).
+			MaxResults(50).
+			PageToken(nextPageToken)
+
+		response, err := call.Do()
+		if err != nil {
+			log.Fatalf("Error retrieving Tracks: [%v]", err)
+		}
+
+		if len(response.Items) == 0 {
+			log.Println("No Tracks found.")
+		} else {
+			playlistItems = append(playlistItems, response.Items...)
+		}
+
+		if response.NextPageToken == "" {
+			break
+		}
+
+		nextPageToken = response.NextPageToken
+	}
+
+	return playlistItems
+}
+
+func (yt YouTube) ListTracks(query string, maxResults int64) {
+	track := yt.GetTracks(query, maxResults)
 
 	log.Println("Your YouTube Music Search Results:")
 	log.Println("========================================")
@@ -106,7 +168,7 @@ func (yt YouTube) ShowTrack(query string, maxResults int64) {
 	}
 }
 
-func (yt YouTube) FindTrack(query string, maxResults int64) []*youtube.SearchResult {
+func (yt YouTube) GetTracks(query string, maxResults int64) []*youtube.SearchResult {
 	log.Printf("Searching for: [%s]\n", query)
 
 	call := yt.client.Search.List([]string{"snippet"})
@@ -124,4 +186,62 @@ func (yt YouTube) FindTrack(query string, maxResults int64) []*youtube.SearchRes
 	} else {
 		return response.Items
 	}
+}
+
+func (yt YouTube) CreatePlaylist(name string) string {
+	playlists := yt.GetPlaylists()
+	for _, playlist := range playlists {
+		if playlist.Snippet.Title == name {
+			log.Printf("Playlist [%s] already exists\n", name)
+			return playlist.Id
+		}
+	}
+
+	playlist := &youtube.Playlist{
+		Snippet: &youtube.PlaylistSnippet{
+			Title:       name,
+			Description: "Playlist created by Spotify Playlist Converter",
+			Tags:        []string{"spotify-playlist-converter"},
+		},
+		Status: &youtube.PlaylistStatus{
+			PrivacyStatus: "private",
+		},
+	}
+
+	call := yt.client.Playlists.Insert([]string{"snippet", "status"}, playlist)
+	response, err := call.Do()
+	if err != nil {
+		log.Fatalf("Error creating Playlist: %v", err)
+	}
+
+	log.Printf("Created Playlist: [%s], ID: [%s]\n", response.Snippet.Title, response.Id)
+	return response.Id
+}
+
+func (yt YouTube) AddToPlaylist(playlistId string, trackId string) string {
+	playlistItems := yt.GetPlaylistItems(playlistId)
+
+	for _, playlistItem := range playlistItems {
+		if playlistItem.Snippet.ResourceId.VideoId == trackId {
+			log.Printf("Track [%s] already exists in Playlist [%s]\n", trackId, playlistId)
+			return playlistItem.Id
+		}
+	}
+
+	call := yt.client.PlaylistItems.Insert([]string{"snippet"}, &youtube.PlaylistItem{
+		Snippet: &youtube.PlaylistItemSnippet{
+			PlaylistId: playlistId,
+			ResourceId: &youtube.ResourceId{
+				Kind:    "youtube#video",
+				VideoId: trackId,
+			},
+		},
+	})
+
+	response, err := call.Do()
+	if err != nil {
+		log.Fatalf("Error adding track to playlist: %v", err)
+	}
+
+	return response.Id
 }

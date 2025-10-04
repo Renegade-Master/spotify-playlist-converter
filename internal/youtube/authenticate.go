@@ -47,7 +47,7 @@ func createYouTubeService() *youtube.Service {
 	b := []byte(googleAuthFile)
 
 	// Configure OAuth2 with required scopes
-	config, err := google.ConfigFromJSON(b, youtube.YoutubeReadonlyScope)
+	config, err := google.ConfigFromJSON(b, youtube.YoutubeForceSslScope)
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
