@@ -11,8 +11,8 @@ jobs:
     environment: Main
     strategy:
       matrix:
-        #platform: [windows, linux, darwin, android]
         platform: [windows, linux, darwin]
+        arch: [amd64, arm64]
 
     runs-on: ubuntu-latest
 
@@ -39,6 +39,7 @@ jobs:
     - name: Test
       env:
         GOOS: ${{ matrix.platform }}
+        GOARCH: ${{ matrix.arch }}
       run: go build -v -tags generate -o out/ ./...
 
     - uses: actions/upload-artifact@v4
