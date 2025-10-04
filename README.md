@@ -1,5 +1,7 @@
 # Spotify Playlist Converter
 
+[![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=Renegade-Master_spotify-playlist-converter)](https://sonarcloud.io/summary/new_code?id=Renegade-Master_spotify-playlist-converter)
+
 ## Building
 
 To build the application, there are some files which must be created:
