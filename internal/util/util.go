@@ -21,9 +21,10 @@ import (
 	"os/exec"
 
 	"github.com/agnivade/levenshtein"
+	"github.com/zmb3/spotify/v2"
 )
 
-const MaxHamDistance int = 5
+const MaxDistance int = 5
 
 // CheckIfCommandExists checks if executable 'e' is in PATH
 func CheckIfCommandExists(e ...string) bool {
@@ -45,6 +46,15 @@ func RemoveIndexString(original []string, index int) []string {
 	log.Printf("Removing Item [%d] [%s]", index, original[index])
 
 	modified := make([]string, 0)
+	modified = append(modified, original[:index]...)
+
+	return append(modified, original[index+1:]...)
+}
+
+func RemoveIndexTrack(original []spotify.PlaylistTrack, index int) []spotify.PlaylistTrack {
+	log.Printf("Removing Item [%d] [%s]", index, original[index].Track.Name)
+
+	modified := make([]spotify.PlaylistTrack, 0)
 	modified = append(modified, original[:index]...)
 
 	return append(modified, original[index+1:]...)
