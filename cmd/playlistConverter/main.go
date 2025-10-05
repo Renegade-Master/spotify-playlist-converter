@@ -28,5 +28,5 @@ func main() {
 	spotifyPlaylistId := spotifyClient.GetPlaylists()[0].ID
 	spotifyClient.AddPlaylistToYouTube(spotifyPlaylistId, &youtubeClient)
 
-	spotifyClient.AddAllPlaylists(&youtubeClient)
+	//spotifyClient.AddAllPlaylists(&youtubeClient)
 }

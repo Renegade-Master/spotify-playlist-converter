@@ -95,13 +95,16 @@ func (s Spotify) AddPlaylistToYouTube(playlistId spotify.ID, yt *youtube.YouTube
 	log.Printf("Converting Playlist [%s] to YouTube...", ytPlayListName)
 
 	ytPlaylistId := yt.CreatePlaylist(ytPlayListName)
+	var tracksToAdd []string
 
 	playlist := s.GetPlaylist(playlistId)
 	for _, track := range playlist.Tracks.Tracks {
+		// ToDo: Searching for Tracks is the single most credit expensive action
 		ytTrack := yt.GetTracks(fmt.Sprintf("%s %s", track.Track.Name, track.Track.Artists[0].Name), 1)
-
-		yt.AddToPlaylist(ytPlaylistId, ytTrack[0].Id.VideoId)
+		tracksToAdd = append(tracksToAdd, ytTrack[0].Id.VideoId)
 	}
+
+	yt.AddToPlaylist(ytPlaylistId, tracksToAdd...)
 }
 
 func (s Spotify) AddAllPlaylists(yt *youtube.YouTube) {

@@ -19,6 +19,7 @@ package youtube
 import (
 	"log"
 
+	"github.com/Renegade-Master/spotify-playlist-converter/internal/util"
 	"google.golang.org/api/youtube/v3"
 )
 
@@ -42,9 +43,6 @@ func (yt YouTube) ListChannels() {
 		log.Fatalf("Error retrieving channels: %v", err)
 	}
 
-	log.Println("Your YouTube Music Channels:")
-	log.Println("========================================")
-
 	if len(response.Items) == 0 {
 		log.Println("No channels found.")
 	} else {
@@ -61,9 +59,6 @@ func (yt YouTube) ListChannels() {
 
 func (yt YouTube) ListPlaylists() {
 	playlists := yt.GetPlaylists()
-
-	log.Println("Your YouTube Music Playlists:")
-	log.Println("========================================")
 
 	if len(playlists) == 0 {
 		log.Println("No playlists found.")
@@ -153,9 +148,6 @@ func (yt YouTube) GetPlaylistItems(playlistId string) []*youtube.PlaylistItem {
 func (yt YouTube) ListTracks(query string, maxResults int64) {
 	track := yt.GetTracks(query, maxResults)
 
-	log.Println("Your YouTube Music Search Results:")
-	log.Println("========================================")
-
 	if len(track) == 0 {
 		log.Println("No tracks found.")
 	} else {
@@ -184,6 +176,9 @@ func (yt YouTube) GetTracks(query string, maxResults int64) []*youtube.SearchRes
 		log.Println("No tracks found.")
 		return []*youtube.SearchResult{}
 	} else {
+		for _, track := range response.Items {
+			log.Printf("Found Track: [%s]\n", track.Snippet.Title)
+		}
 		return response.Items
 	}
 }
@@ -218,30 +213,49 @@ func (yt YouTube) CreatePlaylist(name string) string {
 	return response.Id
 }
 
-func (yt YouTube) AddToPlaylist(playlistId string, trackId string) string {
+func (yt YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
 	playlistItems := yt.GetPlaylistItems(playlistId)
 
+	// Check if any Tracks already exist in the Playlist
+	var badTrackIds []int
 	for _, playlistItem := range playlistItems {
-		if playlistItem.Snippet.ResourceId.VideoId == trackId {
-			log.Printf("Track [%s] already exists in Playlist [%s]\n", trackId, playlistId)
-			return playlistItem.Id
+		for idx, trackId := range trackIds {
+			if playlistItem.Snippet.ResourceId.VideoId == trackId {
+				log.Printf("Track [%s] already exists in Playlist [%s]\n", trackId, playlistId)
+				badTrackIds = append(badTrackIds, idx)
+			}
 		}
 	}
 
-	call := yt.client.PlaylistItems.Insert([]string{"snippet"}, &youtube.PlaylistItem{
-		Snippet: &youtube.PlaylistItemSnippet{
-			PlaylistId: playlistId,
-			ResourceId: &youtube.ResourceId{
-				Kind:    "youtube#video",
-				VideoId: trackId,
-			},
-		},
-	})
-
-	response, err := call.Do()
-	if err != nil {
-		log.Fatalf("Error adding Track ID [%s] to Playlist [%s]: [%v]", trackId, playlistId, err)
+	// Remove Tracks that already exist
+	itemsRemoved := 0
+	log.Printf("Removing [%d] Tracks that already exist in Playlist [%s]\n", len(badTrackIds), playlistId)
+	for _, idx := range badTrackIds {
+		trackIds = util.RemoveIndexString(trackIds, idx-itemsRemoved)
+		itemsRemoved++
 	}
 
-	return response.Id
+	// Add all found Tracks to the Playlist
+	for _, trackId := range trackIds {
+		// ToDo: It would be nice if it was possible to add all Tracks in one call. May be possible using raw HTTP Requests instead of the library
+		call := yt.client.PlaylistItems.Insert([]string{"snippet"}, &youtube.PlaylistItem{
+			Snippet: &youtube.PlaylistItemSnippet{
+				PlaylistId: playlistId,
+				ResourceId: &youtube.ResourceId{
+					Kind:    "youtube#video",
+					VideoId: trackId,
+				},
+			},
+		})
+
+		_, err := call.Do()
+		if err != nil {
+			log.Printf("Error adding Track ID [%s] to Playlist [%s]: [%v]", trackId, playlistId, err)
+			return err
+		}
+
+		log.Printf("Added Track ID [%s] to Playlist [%s]\n", trackId, playlistId)
+	}
+
+	return nil
 }

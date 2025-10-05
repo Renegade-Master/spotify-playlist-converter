@@ -16,7 +16,10 @@
 
 package util
 
-import "os/exec"
+import (
+	"log"
+	"os/exec"
+)
 
 // CheckIfCommandExists checks if executable 'e' is in PATH
 func CheckIfCommandExists(e ...string) bool {
@@ -32,4 +35,13 @@ func CheckIfCommandExists(e ...string) bool {
 	}
 
 	return anyCommandFound
+}
+
+func RemoveIndexString(original []string, index int) []string {
+	log.Printf("Removing Item [%d] [%s]", index, original[index])
+
+	modified := make([]string, 0)
+	modified = append(modified, original[:index]...)
+
+	return append(modified, original[index+1:]...)
 }
