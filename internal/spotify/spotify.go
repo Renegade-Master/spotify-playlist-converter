@@ -95,41 +95,47 @@ func (s *Spotify) AddPlaylistToYouTube(playlistId spotify.ID, yt *youtube.YouTub
 	ytPlayListName := s.GetPlaylist(playlistId).Name
 	log.Printf("Converting Playlist [%s] to YouTube...", ytPlayListName)
 
-	playlist := s.GetPlaylist(playlistId)
+	spotifyPlaylist := s.GetPlaylist(playlistId)
 
 	ytPlaylistId, isNewPlaylist := yt.CreatePlaylist(ytPlayListName)
 	if !isNewPlaylist {
 		ytPlaylistItems := yt.GetPlaylistItems(ytPlaylistId)
-		var weightedTracks []youtube.WeightedPlaylistItem
+		var duplicateTrackIds []int
 
 		// Get the Title for each Spotify and YouTube Tracks
 		for _, ytPlaylistItem := range ytPlaylistItems {
-			for _, spPlaylistItem := range playlist.Tracks.Tracks {
+			for idx, spPlaylistItem := range spotifyPlaylist.Tracks.Tracks {
 				spotifyTitle := fmt.Sprintf("%s %s", spPlaylistItem.Track.Artists[0].Name, spPlaylistItem.Track.Name)
 				youTubeTitle := ytPlaylistItem.Snippet.Title
 
+				// Attempt to determine if this Track already exists in the YouTube Playlist
 				distance := util.LevenshteinDistance(spotifyTitle, youTubeTitle)
-				weightedTracks = append(weightedTracks, youtube.WeightedPlaylistItem{Result: ytPlaylistItem, Weight: distance})
-
-				log.Printf("Distance [%d]; Length [%d]; Difference [%d]", distance, len(ytPlaylistItem.Snippet.Title), len(ytPlaylistItem.Snippet.Title)-distance)
+				if distance <= util.MaxDistance {
+					log.Printf("It is likely that [%s] and [%s] are the same Track. Not adding.", spotifyTitle, youTubeTitle)
+					duplicateTrackIds = append(duplicateTrackIds, idx)
+				}
 			}
 		}
 
-		log.Printf("Before Sorting: [%v]", weightedTracks)
-
-		distance := func(track1, track2 *youtube.WeightedPlaylistItem) bool {
-			return track1.Weight < track2.Weight
+		// Remove Tracks that already exist
+		if len(duplicateTrackIds) == len(spotifyPlaylist.Tracks.Tracks) {
+			log.Printf("All Tracks are already present in the Playlist")
+			return
 		}
 
-		youtube.ByPlaylistItem(distance).SortPlaylistItem(weightedTracks)
-		log.Printf("After Sorting: [%v]", weightedTracks)
+		itemsRemoved := 0
+		log.Printf("Removing [%d] Tracks that already exist in Playlist [%s]\n", len(duplicateTrackIds), playlistId)
+		for _, idx := range duplicateTrackIds {
+			spotifyPlaylist.Tracks.Tracks = util.RemoveIndexTrack(spotifyPlaylist.Tracks.Tracks, idx-itemsRemoved)
+			itemsRemoved++
+		}
 	}
 
 	var tracksToAdd []string
-	for _, track := range playlist.Tracks.Tracks {
+	for _, track := range spotifyPlaylist.Tracks.Tracks {
 		searchQuery := fmt.Sprintf("%s %s", track.Track.Artists[0].Name, track.Track.Name)
 		// ToDo: Searching for Tracks is the single most credit expensive action
-		ytTrack := yt.GetTrack(searchQuery, 5)
+		ytTrack := yt.GetTrack(searchQuery, 10)
 		tracksToAdd = append(tracksToAdd, ytTrack.Id.VideoId)
 	}
 

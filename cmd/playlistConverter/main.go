@@ -17,6 +17,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/spotify"
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/youtube"
 )
@@ -29,4 +31,6 @@ func main() {
 	spotifyClient.AddPlaylistToYouTube(spotifyPlaylistId, youtubeClient)
 
 	//spotifyClient.AddAllPlaylists(&youtubeClient)
+
+	log.Printf("Used [%d] YouTube Credits", youtubeClient.Credits)
 }

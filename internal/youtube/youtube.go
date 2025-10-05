@@ -24,7 +24,8 @@ import (
 )
 
 type YouTube struct {
-	client *youtube.Service
+	client  *youtube.Service
+	Credits int
 }
 
 func NewYouTube() *YouTube {
@@ -41,6 +42,7 @@ func (yt *YouTube) ListChannels() {
 	if err != nil {
 		log.Fatalf("Error retrieving channels: %v", err)
 	}
+	yt.Credits += 1
 
 	if len(response.Items) == 0 {
 		log.Println("No channels found.")
@@ -86,6 +88,7 @@ func (yt *YouTube) GetPlaylists() []*youtube.Playlist {
 		if err != nil {
 			log.Fatalf("Error retrieving Playlists: %v", err)
 		}
+		yt.Credits += 1
 
 		if len(response.Items) == 0 {
 			log.Println("No Playlists found.")
@@ -133,6 +136,7 @@ func (yt *YouTube) GetPlaylistItems(playlistId string) []*youtube.PlaylistItem {
 		if err != nil {
 			log.Fatalf("Error retrieving Tracks: [%v]", err)
 		}
+		yt.Credits += 1
 
 		if len(response.Items) == 0 {
 			log.Println("No Tracks found.")
@@ -161,6 +165,7 @@ func (yt *YouTube) GetTrack(query string, maxResults int64) *youtube.SearchResul
 	if err != nil {
 		log.Fatalf("Error retrieving track: %s", err)
 	}
+	yt.Credits += 100
 
 	if len(response.Items) == 0 {
 		log.Println("No tracks found.")
@@ -175,16 +180,14 @@ func (yt *YouTube) GetTrack(query string, maxResults int64) *youtube.SearchResul
 			weightedTracks = append(weightedTracks, WeightedSearchResult{Result: track, Weight: distance})
 		}
 
-		log.Printf("Before Sorting: [%v]", weightedTracks)
-
 		distance := func(track1, track2 *WeightedSearchResult) bool {
 			return track1.Weight < track2.Weight
 		}
 
 		BySearchResult(distance).SortSearchResult(weightedTracks)
-		log.Printf("After Sorting: [%v]", weightedTracks)
 
-		return response.Items[0]
+		// Return the top (i.e. most similar) Result
+		return weightedTracks[0].Result
 	}
 }
 
@@ -216,6 +219,7 @@ func (yt *YouTube) CreatePlaylist(name string) (string, bool) {
 	if err != nil {
 		log.Fatalf("Error creating Playlist: %v", err)
 	}
+	yt.Credits += 50
 
 	log.Printf("Created Playlist: [%s], ID: [%s]\n", response.Snippet.Title, response.Id)
 	return response.Id, true
@@ -266,6 +270,7 @@ func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
 			log.Printf("Error adding Track ID [%s] to Playlist [%s]: [%v]", trackId, playlistId, err)
 			return err
 		}
+		yt.Credits += 50
 
 		log.Printf("Added Track ID [%s] to Playlist [%s]\n", trackId, playlistId)
 	}
