@@ -17,14 +17,27 @@
 package util
 
 import (
+	"fmt"
 	"log"
 	"os/exec"
+	"regexp"
+	"strings"
 
 	"github.com/agnivade/levenshtein"
 	"github.com/zmb3/spotify/v2"
 )
 
 const MaxDistance int = 5
+
+var badPhrases = []string{
+	"\\[", "\\]", "\\(", "\\)", "-", ",",
+	"clip",
+	"hd",
+	"lyrics",
+	"video",
+	"with",
+	"official",
+}
 
 // CheckIfCommandExists checks if executable 'e' is in PATH
 func CheckIfCommandExists(e ...string) bool {
@@ -61,8 +74,33 @@ func RemoveIndexTrack(original []spotify.PlaylistTrack, index int) []spotify.Pla
 }
 
 func LevenshteinDistance(stringA, stringB string) int {
-	distance := levenshtein.ComputeDistance(stringA, stringB)
-	log.Printf("Levenshtein Distance between strings \n[%s] and \n[%s]\nis [%d]", stringA, stringB, distance)
+	cleanedA := strings.ToLower(stringA)
+	cleanedB := strings.ToLower(stringB)
+
+	cleanedA = cleanTitle(cleanedA)
+	cleanedB = cleanTitle(cleanedB)
+
+	distance := levenshtein.ComputeDistance(cleanedA, cleanedB)
+	log.Printf("Levenshtein Distance between strings \n[%s] and \n[%s]\nis [%d]", cleanedA, cleanedB, distance)
 
 	return distance
+}
+
+func cleanTitle(original string) string {
+	newString := original
+
+	for _, replacement := range badPhrases {
+
+		reString := fmt.Sprintf("(?i)%s", replacement)
+		re := regexp.MustCompile(reString)
+
+		newString = re.ReplaceAllString(newString, "")
+	}
+
+	reString := "(\\s){2,}"
+	re := regexp.MustCompile(reString)
+
+	newString = re.ReplaceAllString(newString, " ")
+
+	return strings.Trim(newString, " .")
 }

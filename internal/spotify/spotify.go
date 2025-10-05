@@ -103,8 +103,8 @@ func (s *Spotify) AddPlaylistToYouTube(playlistId spotify.ID, yt *youtube.YouTub
 		var duplicateTrackIds []int
 
 		// Get the Title for each Spotify and YouTube Tracks
-		for _, ytPlaylistItem := range ytPlaylistItems {
-			for idx, spPlaylistItem := range spotifyPlaylist.Tracks.Tracks {
+		for idx, spPlaylistItem := range spotifyPlaylist.Tracks.Tracks {
+			for _, ytPlaylistItem := range ytPlaylistItems {
 				spotifyTitle := fmt.Sprintf("%s %s", spPlaylistItem.Track.Artists[0].Name, spPlaylistItem.Track.Name)
 				youTubeTitle := ytPlaylistItem.Snippet.Title
 
@@ -113,6 +113,7 @@ func (s *Spotify) AddPlaylistToYouTube(playlistId spotify.ID, yt *youtube.YouTub
 				if distance <= util.MaxDistance {
 					log.Printf("It is likely that [%s] and [%s] are the same Track. Not adding.", spotifyTitle, youTubeTitle)
 					duplicateTrackIds = append(duplicateTrackIds, idx)
+					continue
 				}
 			}
 		}
