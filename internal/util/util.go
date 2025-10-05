@@ -51,6 +51,8 @@ func RemoveIndexString(original []string, index int) []string {
 }
 
 func LevenshteinDistance(stringA, stringB string) int {
-	log.Printf("Checking Levenshtein Distance between strings \n[%s] and \n[%s]", stringA, stringB)
-	return levenshtein.ComputeDistance(stringA, stringB)
+	distance := levenshtein.ComputeDistance(stringA, stringB)
+	log.Printf("Levenshtein Distance between strings \n[%s] and \n[%s]\nis [%d]", stringA, stringB, distance)
+
+	return distance
 }

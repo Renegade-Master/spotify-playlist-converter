@@ -150,22 +150,7 @@ func (yt *YouTube) GetPlaylistItems(playlistId string) []*youtube.PlaylistItem {
 	return playlistItems
 }
 
-func (yt *YouTube) ListTracks(query string, maxResults int64) {
-	track := yt.GetTracks(query, maxResults)
-
-	if len(track) == 0 {
-		log.Println("No tracks found.")
-	} else {
-		for i, track := range track {
-			log.Printf("%d. %s\n", i+1, track.Snippet.Title)
-			log.Printf("   ID: %s\n", track.Id.VideoId)
-			log.Printf("   Description: %s\n", track.Snippet.Description)
-			log.Println()
-		}
-	}
-}
-
-func (yt *YouTube) GetTracks(query string, maxResults int64) []*youtube.SearchResult {
+func (yt *YouTube) GetTrack(query string, maxResults int64) *youtube.SearchResult {
 	log.Printf("Searching for: [%s]\n", query)
 
 	call := yt.client.Search.List([]string{"snippet"}).
@@ -179,13 +164,27 @@ func (yt *YouTube) GetTracks(query string, maxResults int64) []*youtube.SearchRe
 
 	if len(response.Items) == 0 {
 		log.Println("No tracks found.")
-		return []*youtube.SearchResult{}
+		return &youtube.SearchResult{}
 	} else {
+		var weightedTracks []WeightedSearchResult
 		for _, track := range response.Items {
 			log.Printf("Found Track: [%s]\n", track.Snippet.Title)
+			youTubeTitle := track.Snippet.Title
+
+			distance := util.LevenshteinDistance(query, youTubeTitle)
+			weightedTracks = append(weightedTracks, WeightedSearchResult{Result: track, Weight: distance})
 		}
 
-		return response.Items
+		log.Printf("Before Sorting: [%v]", weightedTracks)
+
+		distance := func(track1, track2 *WeightedSearchResult) bool {
+			return track1.Weight < track2.Weight
+		}
+
+		BySearchResult(distance).SortSearchResult(weightedTracks)
+		log.Printf("After Sorting: [%v]", weightedTracks)
+
+		return response.Items[0]
 	}
 }
 
@@ -237,6 +236,11 @@ func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
 	}
 
 	// Remove Tracks that already exist
+	if len(badTrackIds) == len(trackIds) {
+		log.Printf("All Tracks are already present in the Playlist")
+		return nil
+	}
+
 	itemsRemoved := 0
 	log.Printf("Removing [%d] Tracks that already exist in Playlist [%s]\n", len(badTrackIds), playlistId)
 	for _, idx := range badTrackIds {
