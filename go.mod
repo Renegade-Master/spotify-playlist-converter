@@ -5,6 +5,7 @@ go 1.25
 toolchain go1.25.1
 
 require (
+	github.com/agnivade/levenshtein v1.2.1
 	github.com/google/uuid v1.6.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/zmb3/spotify/v2 v2.4.3
