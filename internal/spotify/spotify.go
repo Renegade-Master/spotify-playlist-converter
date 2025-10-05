@@ -100,22 +100,37 @@ func (s *Spotify) AddPlaylistToYouTube(playlistId spotify.ID, yt *youtube.YouTub
 	ytPlaylistId, isNewPlaylist := yt.CreatePlaylist(ytPlayListName)
 	if !isNewPlaylist {
 		ytPlaylistItems := yt.GetPlaylistItems(ytPlaylistId)
+		var weightedTracks []youtube.WeightedPlaylistItem
+
+		// Get the Title for each Spotify and YouTube Tracks
 		for _, ytPlaylistItem := range ytPlaylistItems {
 			for _, spPlaylistItem := range playlist.Tracks.Tracks {
 				spotifyTitle := fmt.Sprintf("%s %s", spPlaylistItem.Track.Artists[0].Name, spPlaylistItem.Track.Name)
 				youTubeTitle := ytPlaylistItem.Snippet.Title
+
 				distance := util.LevenshteinDistance(spotifyTitle, youTubeTitle)
+				weightedTracks = append(weightedTracks, youtube.WeightedPlaylistItem{Result: ytPlaylistItem, Weight: distance})
 
 				log.Printf("Distance [%d]; Length [%d]; Difference [%d]", distance, len(ytPlaylistItem.Snippet.Title), len(ytPlaylistItem.Snippet.Title)-distance)
 			}
 		}
+
+		log.Printf("Before Sorting: [%v]", weightedTracks)
+
+		distance := func(track1, track2 *youtube.WeightedPlaylistItem) bool {
+			return track1.Weight < track2.Weight
+		}
+
+		youtube.ByPlaylistItem(distance).SortPlaylistItem(weightedTracks)
+		log.Printf("After Sorting: [%v]", weightedTracks)
 	}
 
 	var tracksToAdd []string
 	for _, track := range playlist.Tracks.Tracks {
+		searchQuery := fmt.Sprintf("%s %s", track.Track.Artists[0].Name, track.Track.Name)
 		// ToDo: Searching for Tracks is the single most credit expensive action
-		ytTrack := yt.GetTracks(fmt.Sprintf("%s %s", track.Track.Name, track.Track.Artists[0].Name), 5)
-		tracksToAdd = append(tracksToAdd, ytTrack[0].Id.VideoId)
+		ytTrack := yt.GetTrack(searchQuery, 5)
+		tracksToAdd = append(tracksToAdd, ytTrack.Id.VideoId)
 	}
 
 	yt.AddToPlaylist(ytPlaylistId, tracksToAdd...)
