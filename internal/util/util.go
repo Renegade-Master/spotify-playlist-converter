@@ -19,7 +19,11 @@ package util
 import (
 	"log"
 	"os/exec"
+
+	"github.com/agnivade/levenshtein"
 )
+
+const MaxHamDistance int = 5
 
 // CheckIfCommandExists checks if executable 'e' is in PATH
 func CheckIfCommandExists(e ...string) bool {
@@ -44,4 +48,9 @@ func RemoveIndexString(original []string, index int) []string {
 	modified = append(modified, original[:index]...)
 
 	return append(modified, original[index+1:]...)
+}
+
+func LevenshteinDistance(stringA, stringB string) int {
+	log.Printf("Checking Levenshtein Distance between strings \n[%s] and \n[%s]", stringA, stringB)
+	return levenshtein.ComputeDistance(stringA, stringB)
 }

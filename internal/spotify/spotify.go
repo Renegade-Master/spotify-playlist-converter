@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Renegade-Master/spotify-playlist-converter/internal/util"
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/youtube"
 	"github.com/zmb3/spotify/v2"
 )
@@ -30,24 +31,24 @@ type Spotify struct {
 	privateClient *spotify.PrivateUser
 }
 
-func NewSpotify() Spotify {
+func NewSpotify() *Spotify {
 	spotifyClient := createSpotifyService()
 	spotifyPrivateUser := getSpotifyPrivateUser(context.Background(), *spotifyClient)
-	return Spotify{client: spotifyClient, privateClient: spotifyPrivateUser}
+	return &Spotify{client: spotifyClient, privateClient: spotifyPrivateUser}
 }
 
 func createSpotifyService() *spotify.Client {
 	return getSpotifyClient()
 }
 
-func (s Spotify) ListInfo() {
+func (s *Spotify) ListInfo() {
 	log.Printf("User ID: [%s]", s.privateClient.ID)
 	log.Printf("Display name: [%s]", s.privateClient.DisplayName)
 	log.Printf("Spotify URI: [%s]", string(s.privateClient.URI))
 	log.Printf("Endpoint: [%s]", s.privateClient.Endpoint)
 }
 
-func (s Spotify) ListPlaylists() {
+func (s *Spotify) ListPlaylists() {
 	playlists, _ := s.client.GetPlaylistsForUser(context.Background(), s.privateClient.ID)
 
 	log.Printf("Found [%d] playlists", len(playlists.Playlists))
@@ -60,19 +61,19 @@ func (s Spotify) ListPlaylists() {
 	}
 }
 
-func (s Spotify) GetPlaylists() []spotify.SimplePlaylist {
+func (s *Spotify) GetPlaylists() []spotify.SimplePlaylist {
 	playlists, _ := s.client.GetPlaylistsForUser(context.Background(), s.privateClient.ID)
 
 	return playlists.Playlists
 }
 
-func (s Spotify) GetPlaylist(playlistId spotify.ID) *spotify.FullPlaylist {
+func (s *Spotify) GetPlaylist(playlistId spotify.ID) *spotify.FullPlaylist {
 	playlist, _ := s.client.GetPlaylist(context.Background(), playlistId)
 
 	return playlist
 }
 
-func (s Spotify) ListPlaylist(playlistId spotify.ID) {
+func (s *Spotify) ListPlaylist(playlistId spotify.ID) {
 	playlist, err := s.client.GetPlaylistItems(context.Background(), playlistId)
 	if err != nil {
 		log.Fatalf("Error retrieving playlist: [%s]", err)
@@ -90,24 +91,37 @@ func (s Spotify) ListPlaylist(playlistId spotify.ID) {
 	}
 }
 
-func (s Spotify) AddPlaylistToYouTube(playlistId spotify.ID, yt *youtube.YouTube) {
+func (s *Spotify) AddPlaylistToYouTube(playlistId spotify.ID, yt *youtube.YouTube) {
 	ytPlayListName := s.GetPlaylist(playlistId).Name
 	log.Printf("Converting Playlist [%s] to YouTube...", ytPlayListName)
 
-	ytPlaylistId := yt.CreatePlaylist(ytPlayListName)
-	var tracksToAdd []string
-
 	playlist := s.GetPlaylist(playlistId)
+
+	ytPlaylistId, isNewPlaylist := yt.CreatePlaylist(ytPlayListName)
+	if !isNewPlaylist {
+		ytPlaylistItems := yt.GetPlaylistItems(ytPlaylistId)
+		for _, ytPlaylistItem := range ytPlaylistItems {
+			for _, spPlaylistItem := range playlist.Tracks.Tracks {
+				spotifyTitle := fmt.Sprintf("%s %s", spPlaylistItem.Track.Artists[0].Name, spPlaylistItem.Track.Name)
+				youTubeTitle := ytPlaylistItem.Snippet.Title
+				distance := util.LevenshteinDistance(spotifyTitle, youTubeTitle)
+
+				log.Printf("Distance [%d]; Length [%d]; Difference [%d]", distance, len(ytPlaylistItem.Snippet.Title), len(ytPlaylistItem.Snippet.Title)-distance)
+			}
+		}
+	}
+
+	var tracksToAdd []string
 	for _, track := range playlist.Tracks.Tracks {
 		// ToDo: Searching for Tracks is the single most credit expensive action
-		ytTrack := yt.GetTracks(fmt.Sprintf("%s %s", track.Track.Name, track.Track.Artists[0].Name), 1)
+		ytTrack := yt.GetTracks(fmt.Sprintf("%s %s", track.Track.Name, track.Track.Artists[0].Name), 5)
 		tracksToAdd = append(tracksToAdd, ytTrack[0].Id.VideoId)
 	}
 
 	yt.AddToPlaylist(ytPlaylistId, tracksToAdd...)
 }
 
-func (s Spotify) AddAllPlaylists(yt *youtube.YouTube) {
+func (s *Spotify) AddAllPlaylists(yt *youtube.YouTube) {
 	log.Println("Converting all playlists to YouTube...")
 
 	playlists := s.GetPlaylists()
