@@ -19,10 +19,13 @@ package youtube
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
 
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/util"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/youtube/v3"
 )
 
@@ -258,56 +261,30 @@ func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
 
 	yt.addAllIdsToPlaylist(playlistId, trackIds...)
 	return nil
-
-	// Add all found Tracks to the Playlist
-	for _, trackId := range trackIds {
-		// ToDo: It would be nice if it was possible to add all Tracks in one call. May be possible using raw HTTP Requests instead of the library
-		call := yt.client.PlaylistItems.Insert([]string{"snippet"}, &youtube.PlaylistItem{
-			Snippet: &youtube.PlaylistItemSnippet{
-				PlaylistId: playlistId,
-				ResourceId: &youtube.ResourceId{
-					Kind:    "youtube#video",
-					VideoId: trackId,
-				},
-			},
-		})
-
-		_, err := call.Do()
-		if err != nil {
-			log.Printf("Error adding Track ID [%s] to Playlist [%s]: [%v]", trackId, playlistId, err)
-			return err
-		}
-		yt.Credits += 50
-
-		log.Printf("Added Track ID [%s] to Playlist [%s]\n", trackId, playlistId)
-	}
-
-	return nil
 }
 
 func (yt *YouTube) addAllIdsToPlaylist(playlistId string, trackIds ...string) {
-	//apiURL := "https://youtube.googleapis.com/youtube/v3/playlistItems?alt=json&part=snippet&prettyPrint=false"
-	//bodyMap := map[string]interface{}{
-	//	"snippet": map[string]interface{}{
-	//		"playlistId": playlistId,
-	//		"resourceId": map[string]interface{}{
-	//			"kind":    "youtube#video",
-	//			"videoId": "W6peZX9k78s",
-	//		},
-	//	},
-	//}
-	apiURL := "https://www.youtube.com/youtubei/v1/browse/edit_playlist?alt=json&part=snippet&prettyPrint=false"
+	apiURL := "https://www.youtube.com/youtubei/v1/browse/edit_playlist?key=AAA"
+	//apiURL := "https://www.youtube.com/youtubei/v1/playlist/edit?key=AAA"
+
+	var actions []interface{}
+	for _, id := range trackIds {
+		actions = append(actions, map[string]interface{}{
+			"addedVideoId": id,
+			"action":       "ACTION_ADD_VIDEO",
+		})
+	}
+
 	bodyMap := map[string]interface{}{
-		"actions": []interface{}{
-			map[string]interface{}{
-				"addedVideoId": "QZ0Djf3xOx8",
-				"action":       "ACTION_ADD_VIDEO",
-			},
-			map[string]interface{}{
-				"addedVideoId": "QZ0Djf3xOx8",
-				"action":       "ACTION_ADD_VIDEO",
+		"context": map[string]interface{}{
+			"client": map[string]interface{}{
+				"clientName":    "WEB",
+				"clientVersion": "2.20251002.00.00",
+				"hl":            "en-GB",
+				"gl":            "IE",
 			},
 		},
+		"actions":    actions,
 		"playlistId": playlistId,
 	}
 
@@ -315,10 +292,32 @@ func (yt *YouTube) addAllIdsToPlaylist(playlistId string, trackIds ...string) {
 	if err != nil {
 		panic(err)
 	}
-	body := bytes.NewBuffer(requestBody)
+
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(requestBody))
+	if err != nil {
+		panic(err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Origin", "https://www.youtube.com")
+	req.Header.Set("Referer", "https://www.youtube.com")
+	req.Header.Set("User-Agent", "com.google.android.youtube/19.36.34 (Linux; U; Android 13)")
+
+	if transport, ok := yt.rawClient.Transport.(*oauth2.Transport); ok {
+		token, _ := transport.Source.Token()
+		req.Header.Set("Authorization", "Bearer "+token.AccessToken)
+	}
+
+	for _, cookie := range yt.rawClient.Jar.Cookies(req.URL) {
+		req.AddCookie(cookie)
+	}
+
+	dump, _ := httputil.DumpRequestOut(req, true)
+	fmt.Println(string(dump))
 
 	// POST request
-	resp, err := yt.rawClient.Post(apiURL, "application/json", body)
+	resp, err := yt.rawClient.Do(req)
 	if err != nil {
 		panic(err)
 	}
