@@ -135,9 +135,8 @@ func (s *Spotify) AddPlaylistToYouTube(playlistId spotify.ID, yt *youtube.YouTub
 	var tracksToAdd []string
 	for _, track := range spotifyPlaylist.Tracks.Tracks {
 		searchQuery := fmt.Sprintf("%s %s", track.Track.Artists[0].Name, track.Track.Name)
-		// ToDo: Searching for Tracks is the single most credit expensive action
-		ytTrack := yt.GetTrack(searchQuery, 10)
-		tracksToAdd = append(tracksToAdd, ytTrack.Id.VideoId)
+		ytTrack := yt.GetTrackUnofficial(searchQuery, 5)
+		tracksToAdd = append(tracksToAdd, ytTrack)
 	}
 
 	yt.AddToPlaylist(ytPlaylistId, tracksToAdd...)
