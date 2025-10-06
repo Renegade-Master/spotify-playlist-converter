@@ -18,7 +18,6 @@ package youtube
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/util"
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/youtube/innertube"
@@ -33,9 +32,7 @@ type YouTube struct {
 
 func NewYouTube() *YouTube {
 	youtubeService := createYouTubeService()
-
-	httpClient := &http.Client{}
-	innerTubeService, _ := innertube.NewInnerTube(httpClient, "WEB", "2.20230728.00.00", "", "", "", nil, true)
+	innerTubeService, _ := innertube.NewInnerTube()
 
 	return &YouTube{
 		client:    youtubeService,
