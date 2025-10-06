@@ -18,14 +18,16 @@ package youtube
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
-	"net/http/httputil"
+	"net/url"
+	"time"
 
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/util"
-	"golang.org/x/oauth2"
 	"google.golang.org/api/youtube/v3"
 )
 
@@ -263,9 +265,79 @@ func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
 	return nil
 }
 
-func (yt *YouTube) addAllIdsToPlaylist(playlistId string, trackIds ...string) {
-	apiURL := "https://www.youtube.com/youtubei/v1/browse/edit_playlist?key=AAA"
-	//apiURL := "https://www.youtube.com/youtubei/v1/playlist/edit?key=AAA"
+func (yt *YouTube) addAllIdsToPlaylist(playlistId string, trackIds ...string) error {
+	// Check if we have SAPISID cookie - if not, fall back to official API
+	var sapisid string
+	if yt.rawClient != nil && yt.rawClient.Jar != nil {
+		youtubeURL, _ := url.Parse("https://www.youtube.com")
+		cookies := yt.rawClient.Jar.Cookies(youtubeURL)
+
+		for _, cookie := range cookies {
+			if cookie.Name == "SAPISID" {
+				sapisid = cookie.Value
+				break
+			}
+		}
+	}
+
+	// If no SAPISID cookie, use official API
+	if sapisid == "" {
+		log.Println("No SAPISID cookie found, using official API")
+		return yt.addIdsToPlaylistOfficial(playlistId, trackIds...)
+	}
+
+	// Try unofficial API
+	err := yt.addIdsToPlaylistUnofficial(playlistId, trackIds...)
+	if err != nil {
+		log.Printf("Unofficial API failed: %v, falling back to official API", err)
+		return yt.addIdsToPlaylistOfficial(playlistId, trackIds...)
+	}
+
+	return nil
+}
+
+func (yt *YouTube) addIdsToPlaylistOfficial(playlistId string, trackIds ...string) error {
+	log.Printf("Adding %d tracks to playlist %s using official API", len(trackIds), playlistId)
+
+	successCount := 0
+	for i, videoId := range trackIds {
+		playlistItem := &youtube.PlaylistItem{
+			Snippet: &youtube.PlaylistItemSnippet{
+				PlaylistId: playlistId,
+				ResourceId: &youtube.ResourceId{
+					Kind:    "youtube#video",
+					VideoId: videoId,
+				},
+			},
+		}
+
+		call := yt.client.PlaylistItems.Insert([]string{"snippet"}, playlistItem)
+		_, err := call.Do()
+		if err != nil {
+			log.Printf("Error adding video %s to playlist: %v", videoId, err)
+			continue
+		}
+
+		yt.Credits += 50
+		successCount++
+
+		if (i+1)%10 == 0 {
+			log.Printf("Progress: %d/%d videos added", i+1, len(trackIds))
+		}
+	}
+
+	log.Printf("Successfully added %d/%d tracks to playlist", successCount, len(trackIds))
+
+	if successCount == 0 {
+		return fmt.Errorf("failed to add any tracks to playlist")
+	}
+
+	return nil
+}
+
+func (yt *YouTube) addIdsToPlaylistUnofficial(playlistId string, trackIds ...string) error {
+	apiKey := "AAA"
+	apiURL := fmt.Sprintf("https://www.youtube.com/youtubei/v1/browse/edit_playlist?key=%s", apiKey)
 
 	var actions []interface{}
 	for _, id := range trackIds {
@@ -275,13 +347,36 @@ func (yt *YouTube) addAllIdsToPlaylist(playlistId string, trackIds ...string) {
 		})
 	}
 
+	// Get SAPISID cookie for authentication
+	var sapisid string
+	if yt.rawClient != nil && yt.rawClient.Jar != nil {
+		youtubeURL, _ := url.Parse("https://www.youtube.com")
+		cookies := yt.rawClient.Jar.Cookies(youtubeURL)
+
+		for _, cookie := range cookies {
+			if cookie.Name == "SAPISID" {
+				sapisid = cookie.Value
+				break
+			}
+		}
+	}
+
+	if sapisid == "" {
+		return fmt.Errorf("SAPISID cookie not found")
+	}
+
+	// Generate SAPISIDHASH
+	timestamp := time.Now().Unix()
+	origin := "https://www.youtube.com"
+	hashInput := fmt.Sprintf("%d %s %s", timestamp, sapisid, origin)
+	hash := sha1.Sum([]byte(hashInput))
+	sapisidHash := fmt.Sprintf("SAPISIDHASH %d_%x", timestamp, hash)
+
 	bodyMap := map[string]interface{}{
 		"context": map[string]interface{}{
 			"client": map[string]interface{}{
 				"clientName":    "WEB",
-				"clientVersion": "2.20251002.00.00",
-				"hl":            "en-GB",
-				"gl":            "IE",
+				"clientVersion": "2.20250102.01.00",
 			},
 		},
 		"actions":    actions,
@@ -290,38 +385,43 @@ func (yt *YouTube) addAllIdsToPlaylist(playlistId string, trackIds ...string) {
 
 	requestBody, err := json.Marshal(bodyMap)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(requestBody))
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
+	// Set required headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Origin", "https://www.youtube.com")
-	req.Header.Set("Referer", "https://www.youtube.com")
-	req.Header.Set("User-Agent", "com.google.android.youtube/19.36.34 (Linux; U; Android 13)")
+	req.Header.Set("Authorization", sapisidHash)
 
-	if transport, ok := yt.rawClient.Transport.(*oauth2.Transport); ok {
-		token, _ := transport.Source.Token()
-		req.Header.Set("Authorization", "Bearer "+token.AccessToken)
+	// Add all cookies
+	if yt.rawClient != nil && yt.rawClient.Jar != nil {
+		for _, cookie := range yt.rawClient.Jar.Cookies(req.URL) {
+			req.AddCookie(cookie)
+		}
 	}
 
-	for _, cookie := range yt.rawClient.Jar.Cookies(req.URL) {
-		req.AddCookie(cookie)
-	}
-
-	dump, _ := httputil.DumpRequestOut(req, true)
-	fmt.Println(string(dump))
-
-	// POST request
+	// Execute request
 	resp, err := yt.rawClient.Do(req)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	log.Println(resp.StatusCode)
-	log.Println(resp)
 	defer resp.Body.Close()
+
+	// Read response body
+	body, _ := io.ReadAll(resp.Body)
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Unofficial API Response Status: %d", resp.StatusCode)
+		log.Printf("Unofficial API Response Body: %s", string(body))
+		return fmt.Errorf("API request failed with status %d", resp.StatusCode)
+	}
+
+	log.Printf("Successfully added %d tracks to playlist %s using unofficial API", len(trackIds), playlistId)
+	return nil
 }
