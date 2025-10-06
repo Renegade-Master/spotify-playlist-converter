@@ -19,16 +19,17 @@ package main
 import (
 	"log"
 
-	"github.com/Renegade-Master/spotify-playlist-converter/internal/spotify"
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/youtube"
 )
 
 func main() {
-	spotifyClient := spotify.NewSpotify()
+	//spotifyClient := spotify.NewSpotify()
 	youtubeClient := youtube.NewYouTube()
 
-	spotifyPlaylistId := spotifyClient.GetPlaylists()[0].ID
-	spotifyClient.AddPlaylistToYouTube(spotifyPlaylistId, youtubeClient)
+	youtubeClient.GetTrackUnofficial("Tanya Stephens It's A Pity")
+
+	//spotifyPlaylistId := spotifyClient.GetPlaylists()[0].ID
+	//spotifyClient.AddPlaylistToYouTube(spotifyPlaylistId, youtubeClient)
 
 	//spotifyClient.AddAllPlaylists(&youtubeClient)
 
