@@ -286,7 +286,7 @@ func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
 }
 
 func (yt *YouTube) addAllIdsToPlaylist(playlistId string, trackIds ...string) {
-	apiURL := "https://youtube.googleapis.com/youtube/v3/playlistItems?alt=json&part=snippet&prettyPrint=false"
+	//apiURL := "https://youtube.googleapis.com/youtube/v3/playlistItems?alt=json&part=snippet&prettyPrint=false"
 	//bodyMap := map[string]interface{}{
 	//	"snippet": map[string]interface{}{
 	//		"playlistId": playlistId,
@@ -296,6 +296,7 @@ func (yt *YouTube) addAllIdsToPlaylist(playlistId string, trackIds ...string) {
 	//		},
 	//	},
 	//}
+	apiURL := "https://www.youtube.com/youtubei/v1/browse/edit_playlist?alt=json&part=snippet&prettyPrint=false"
 	bodyMap := map[string]interface{}{
 		"actions": []interface{}{
 			map[string]interface{}{
@@ -317,9 +318,7 @@ func (yt *YouTube) addAllIdsToPlaylist(playlistId string, trackIds ...string) {
 	body := bytes.NewBuffer(requestBody)
 
 	// POST request
-	resp, err := yt.rawClient.Post(apiURL, "", body)
-	// ideally the Content-Type header should be set to the relevant format
-	// resp, err := http.Post(apiURL, "application/json", nil)
+	resp, err := yt.rawClient.Post(apiURL, "application/json", body)
 	if err != nil {
 		panic(err)
 	}
