@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 	"os"
 
 	"github.com/pkg/browser"
@@ -34,7 +36,12 @@ import (
 //go:embed google_client_secret.json
 var googleAuthFile string
 
-var ch = make(chan string)
+type codeWithCookies struct {
+	code    string
+	cookies []*http.Cookie
+}
+
+var ch = make(chan codeWithCookies)
 
 func createYouTubeService() (*youtube.Service, *http.Client) {
 	ctx := context.Background()
@@ -52,7 +59,13 @@ func createYouTubeService() (*youtube.Service, *http.Client) {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
 
-	client := getClient(config)
+	client, cookies := getClient(config)
+	jar, _ := cookiejar.New(nil)
+
+	urls, err := url.Parse("https://www.youtube.com")
+	jar.SetCookies(urls, cookies)
+
+	client.Jar = jar
 
 	// Create YouTube service
 	service, err := youtube.NewService(ctx, option.WithHTTPClient(client))
@@ -64,13 +77,13 @@ func createYouTubeService() (*youtube.Service, *http.Client) {
 }
 
 // getClient retrieves a token, saves the token, and returns the configured client.
-func getClient(config *oauth2.Config) *http.Client {
-	tok := getTokenFromWeb(config)
-	return config.Client(context.Background(), tok)
+func getClient(config *oauth2.Config) (*http.Client, []*http.Cookie) {
+	tok, cookies := getTokenFromWeb(config)
+	return config.Client(context.Background(), tok), cookies
 }
 
 // getTokenFromWeb requests a token from the web, then returns the retrieved token.
-func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, []*http.Cookie) {
 	http.HandleFunc("/", completeAuth)
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Got request for favicon.ico")
@@ -91,13 +104,13 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 		log.Printf("Could not open browser automatically. Please visit the URL above to log in: Error: [%v]", err)
 	}
 
-	authCode := <-ch
+	codeWithCookies := <-ch
 
-	tok, err := config.Exchange(context.TODO(), authCode)
+	tok, err := config.Exchange(context.TODO(), codeWithCookies.code)
 	if err != nil {
 		log.Fatalf("Unable to retrieve token from web: %v", err)
 	}
-	return tok
+	return tok, codeWithCookies.cookies
 }
 
 func completeAuth(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +127,7 @@ func completeAuth(w http.ResponseWriter, r *http.Request) {
 
 	r.Context().Done()
 
-	ch <- code
+	ch <- codeWithCookies{code, r.Cookies()}
 }
 
 // tokenFromFile retrieves a token from a local file.
