@@ -17,20 +17,24 @@
 package youtube
 
 import (
+	"bytes"
+	"encoding/json"
 	"log"
+	"net/http"
 
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/util"
 	"google.golang.org/api/youtube/v3"
 )
 
 type YouTube struct {
-	client  *youtube.Service
-	Credits int
+	client    *youtube.Service
+	rawClient *http.Client
+	Credits   int
 }
 
 func NewYouTube() *YouTube {
-	youtubeService := createYouTubeService()
-	return &YouTube{client: youtubeService}
+	youtubeService, youtubeClient := createYouTubeService()
+	return &YouTube{client: youtubeService, rawClient: youtubeClient}
 }
 
 func (yt *YouTube) ListChannels() {
@@ -252,6 +256,9 @@ func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
 		itemsRemoved++
 	}
 
+	yt.addAllIdsToPlaylist(playlistId, trackIds...)
+	return nil
+
 	// Add all found Tracks to the Playlist
 	for _, trackId := range trackIds {
 		// ToDo: It would be nice if it was possible to add all Tracks in one call. May be possible using raw HTTP Requests instead of the library
@@ -276,4 +283,47 @@ func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
 	}
 
 	return nil
+}
+
+func (yt *YouTube) addAllIdsToPlaylist(playlistId string, trackIds ...string) {
+	apiURL := "https://youtube.googleapis.com/youtube/v3/playlistItems?alt=json&part=snippet&prettyPrint=false"
+	//bodyMap := map[string]interface{}{
+	//	"snippet": map[string]interface{}{
+	//		"playlistId": playlistId,
+	//		"resourceId": map[string]interface{}{
+	//			"kind":    "youtube#video",
+	//			"videoId": "W6peZX9k78s",
+	//		},
+	//	},
+	//}
+	bodyMap := map[string]interface{}{
+		"actions": []interface{}{
+			map[string]interface{}{
+				"addedVideoId": "QZ0Djf3xOx8",
+				"action":       "ACTION_ADD_VIDEO",
+			},
+			map[string]interface{}{
+				"addedVideoId": "QZ0Djf3xOx8",
+				"action":       "ACTION_ADD_VIDEO",
+			},
+		},
+		"playlistId": playlistId,
+	}
+
+	requestBody, err := json.Marshal(bodyMap)
+	if err != nil {
+		panic(err)
+	}
+	body := bytes.NewBuffer(requestBody)
+
+	// POST request
+	resp, err := yt.rawClient.Post(apiURL, "", body)
+	// ideally the Content-Type header should be set to the relevant format
+	// resp, err := http.Post(apiURL, "application/json", nil)
+	if err != nil {
+		panic(err)
+	}
+	log.Println(resp.StatusCode)
+	log.Println(resp)
+	defer resp.Body.Close()
 }

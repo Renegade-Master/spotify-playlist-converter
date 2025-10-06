@@ -36,7 +36,7 @@ var googleAuthFile string
 
 var ch = make(chan string)
 
-func createYouTubeService() *youtube.Service {
+func createYouTubeService() (*youtube.Service, *http.Client) {
 	ctx := context.Background()
 
 	if googleAuthFile == "" {
@@ -60,7 +60,7 @@ func createYouTubeService() *youtube.Service {
 		log.Fatalf("Error creating YouTube service: %v", err)
 	}
 
-	return service
+	return service, client
 }
 
 // getClient retrieves a token, saves the token, and returns the configured client.

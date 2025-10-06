@@ -90,7 +90,6 @@ func cleanTitle(original string) string {
 	newString := original
 
 	for _, replacement := range badPhrases {
-
 		reString := fmt.Sprintf("(?i)%s", replacement)
 		re := regexp.MustCompile(reString)
 
