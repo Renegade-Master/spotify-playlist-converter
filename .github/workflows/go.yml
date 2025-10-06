@@ -11,38 +11,39 @@ jobs:
     environment: Main
     strategy:
       matrix:
-        platform: [windows, linux, darwin]
-        arch: [amd64, arm64]
+        platform: [ windows, linux, darwin ]
+        arch: [ amd64, arm64 ]
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.25'
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
 
-    - name: Create Embed Files
-      run:
-        echo "${{secrets.GOOGLE_CLIENT_SECRET}}" > internal/youtube/google_client_secret.json;
-        echo "${{secrets.SPOTIFY_CLIENT_ID}}" > internal/spotify/spotify_client_id.txt;
-        echo "${{secrets.SPOTIFY_CLIENT_SECRET}}" > internal/spotify/spotify_client_secret.txt;
+      - name: Create Embed Files
+        run:
+          echo "${{secrets.GOOGLE_CLIENT_SECRET}}" > internal/youtube/google_client_secret.json;
+          echo "${{secrets.INNERTUBE_API_KEY}}" > internal/youtube/innertube/innertube_api_key.txt;
+          echo "${{secrets.SPOTIFY_CLIENT_ID}}" > internal/spotify/spotify_client_id.txt;
+          echo "${{secrets.SPOTIFY_CLIENT_SECRET}}" > internal/spotify/spotify_client_secret.txt;
 
-    - name: Build
-      run: go build -v -tags generate ./...
+      - name: Build
+        run: go build -v -tags generate ./...
 
-    - name: Test
-      run: go test -v -tags generate ./...
+      - name: Test
+        run: go test -v -tags generate ./...
 
-    - name: Test
-      env:
-        GOOS: ${{ matrix.platform }}
-        GOARCH: ${{ matrix.arch }}
-      run: go build -v -tags generate -o out/ ./...
+      - name: Test
+        env:
+          GOOS: ${{ matrix.platform }}
+          GOARCH: ${{ matrix.arch }}
+        run: go build -v -tags generate -o out/ ./...
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: binaries-${{ matrix.platform }}-${{ matrix.arch }}
-        path: out/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.platform }}-${{ matrix.arch }}
+          path: out/*

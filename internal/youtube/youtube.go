@@ -165,7 +165,7 @@ func (yt *YouTube) GetPlaylistItems(playlistId string) []*youtube.PlaylistItem {
 }
 
 // GetTrackUnofficial is a method of Searching YouTube without using Credits
-func (yt *YouTube) GetTrackUnofficial(query string) {
+func (yt *YouTube) GetTrackUnofficial(query string, maxResults int64) string {
 	paramsTypeVideo := "EgIQAQ%3D%3D"
 
 	data, err := yt.intClient.Search(&query, &paramsTypeVideo, nil)
@@ -174,18 +174,30 @@ func (yt *YouTube) GetTrackUnofficial(query string) {
 	}
 
 	contents := data["contents"].(map[string]interface{})["twoColumnSearchResultsRenderer"].(map[string]interface{})["primaryContents"].(map[string]interface{})["sectionListRenderer"].(map[string]interface{})["contents"]
-	results := contents.([]interface{})[0].(map[string]interface{})["itemSectionRenderer"].(map[string]interface{})["contents"]
+	resultsContent := contents.([]interface{})[0].(map[string]interface{})["itemSectionRenderer"].(map[string]interface{})["contents"]
+	results := resultsContent.([]interface{})
 
-	//log.Printf("Retrieved Data: [%v]\n", data["contents"])
-	//log.Printf("Retrieved Data: [%v]\n", contents)
-	//log.Printf("Retrieved Results: [%v]\n", results)
+	// Iterate through the first maxResults results
+	var weightedTracks []WeightedSimpleSearchResult
+	for i := 0; i < int(maxResults); i++ {
+		result := results[i].(map[string]interface{})["videoRenderer"].(map[string]interface{})
+		title := result["title"].(map[string]interface{})["runs"].([]interface{})[0].(map[string]interface{})["text"].(string)
+		videoId := result["videoId"].(string)
 
-	for _, result := range results.([]interface{}) {
-		title := result.(map[string]interface{})["videoRenderer"].(map[string]interface{})["title"].(map[string]interface{})["runs"].([]interface{})[0].(map[string]interface{})["text"].(string)
-		videoId := result.(map[string]interface{})["videoRenderer"].(map[string]interface{})["videoId"].(string)
+		log.Printf("Found Track: [%s] [%s]\n", title, videoId)
 
-		log.Printf("Found Track Title: [%s] [%s]\n", title, videoId)
+		distance := util.LevenshteinDistance(query, title)
+		weightedTracks = append(weightedTracks, WeightedSimpleSearchResult{Result: title, Weight: distance, Id: videoId})
 	}
+
+	distance := func(track1, track2 *WeightedSimpleSearchResult) bool {
+		return track1.Weight < track2.Weight
+	}
+
+	BySimpleSearchResult(distance).SortSimpleSearchResult(weightedTracks)
+
+	// Return the top (i.e. most similar) Result
+	return weightedTracks[0].Id
 }
 
 func (yt *YouTube) GetTrack(query string, maxResults int64) *youtube.SearchResult {

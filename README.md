@@ -11,13 +11,16 @@ To build the application, there are some files which must be created:
 ```shell
 touch internal/spotify/spotify_client_id.txt \
   internal/spotify/spotify_client_secret.txt \
-  internal/youtube/google_client_secret.json
+  internal/youtube/google_client_secret.json \
+  internal/youtube/innertube/innertube_api_key.txt
 ```
 
 The `spotify_client_id.txt` and `spotify_client_secret.txt` should be filled with the Spotify Client ID and Secret from
 the spotify-playlist-converter Spotify Application.
 
-The `google_client_secret.json` should be filled with the Client Secret JSON file from the Google Desktop Application. 
+The `google_client_secret.json` should be filled with the Client Secret JSON file from the Google Desktop Application.
+The `innertube_api_key.txt` should be filled with the Web `INNERTUBE_API_KEY` which can be found by browsing to YouTube
+on your Desktop Browser, and searching the rendered HTML for the `INNERTUBE_API_KEY`.
 
 ### Build
 
