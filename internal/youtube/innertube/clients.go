@@ -1,7 +1,6 @@
 package innertube
 
 import (
-	"errors"
 	"net/http"
 )
 
@@ -16,30 +15,11 @@ type Adaptor interface {
 }
 
 // NewInnerTube creates a new InnerTube instance
-func NewInnerTube(httpClient *http.Client, clientName, clientVersion string, apiKey, userAgent, referer string, locale *Locale, auto bool) (*InnerTube, error) {
-	if clientName == "" {
-		return nil, errors.New("precondition failed: Missing client name")
-	}
-
-	if clientVersion == "" {
-		return nil, errors.New("precondition failed: Missing client version")
-	}
-	context := ClientContext{}
-	if auto {
-		context = GetContext(clientName)
-	} else {
-		context = ClientContext{
-			ClientName:    clientName,
-			ClientVersion: clientVersion,
-			APIKey:        apiKey,
-			UserAgent:     userAgent,
-			Referer:       referer,
-			Locale:        locale,
-		}
-	}
+func NewInnerTube() (*InnerTube, error) {
+	context := GetContext("WEB")
 
 	return &InnerTube{
-		Adaptor: NewInnerTubeAdaptor(context, httpClient),
+		Adaptor: NewInnerTubeAdaptor(context, &http.Client{}),
 	}, nil
 }
 
