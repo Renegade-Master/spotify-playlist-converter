@@ -18,19 +18,29 @@ package youtube
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/util"
+	"github.com/Renegade-Master/spotify-playlist-converter/internal/youtube/innertube"
 	"google.golang.org/api/youtube/v3"
 )
 
 type YouTube struct {
-	client  *youtube.Service
-	Credits int
+	client    *youtube.Service
+	intClient *innertube.InnerTube
+	Credits   int
 }
 
 func NewYouTube() *YouTube {
 	youtubeService := createYouTubeService()
-	return &YouTube{client: youtubeService}
+
+	httpClient := &http.Client{}
+	innerTubeService, _ := innertube.NewInnerTube(httpClient, "WEB", "2.20230728.00.00", "", "", "", nil, true)
+
+	return &YouTube{
+		client:    youtubeService,
+		intClient: innerTubeService,
+	}
 }
 
 func (yt *YouTube) ListChannels() {
@@ -152,6 +162,30 @@ func (yt *YouTube) GetPlaylistItems(playlistId string) []*youtube.PlaylistItem {
 	}
 
 	return playlistItems
+}
+
+// GetTrackUnofficial is a method of Searching YouTube without using Credits
+func (yt *YouTube) GetTrackUnofficial(query string) {
+	paramsTypeVideo := "EgIQAQ%3D%3D"
+
+	data, err := yt.intClient.Search(&query, &paramsTypeVideo, nil)
+	if err != nil {
+		log.Fatalf("Error retrieving track: %s", err)
+	}
+
+	contents := data["contents"].(map[string]interface{})["twoColumnSearchResultsRenderer"].(map[string]interface{})["primaryContents"].(map[string]interface{})["sectionListRenderer"].(map[string]interface{})["contents"]
+	results := contents.([]interface{})[0].(map[string]interface{})["itemSectionRenderer"].(map[string]interface{})["contents"]
+
+	//log.Printf("Retrieved Data: [%v]\n", data["contents"])
+	//log.Printf("Retrieved Data: [%v]\n", contents)
+	//log.Printf("Retrieved Results: [%v]\n", results)
+
+	for _, result := range results.([]interface{}) {
+		title := result.(map[string]interface{})["videoRenderer"].(map[string]interface{})["title"].(map[string]interface{})["runs"].([]interface{})[0].(map[string]interface{})["text"].(string)
+		videoId := result.(map[string]interface{})["videoRenderer"].(map[string]interface{})["videoId"].(string)
+
+		log.Printf("Found Track Title: [%s] [%s]\n", title, videoId)
+	}
 }
 
 func (yt *YouTube) GetTrack(query string, maxResults int64) *youtube.SearchResult {
