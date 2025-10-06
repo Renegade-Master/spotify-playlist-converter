@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="wslyyy Code" pattern="file[spotify-playlist-converter]:internal/youtube/innertube//*&amp;&amp;!file:internal/youtube/innertube/innertube_api_key.txt" />
+</component>

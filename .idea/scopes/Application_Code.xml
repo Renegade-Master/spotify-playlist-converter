@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="Application Code" pattern="(file[spotify-playlist-converter]:internal//*||file[spotify-playlist-converter]:cmd//*)&amp;&amp;!file[spotify-playlist-converter]:internal/youtube/innertube/*&amp;&amp;!file:internal/youtube/google_client_secret.json&amp;&amp;!file:internal/spotify/spotify_client_id.txt&amp;&amp;!file:internal/spotify/spotify_client_secret.txt" />
+</component>

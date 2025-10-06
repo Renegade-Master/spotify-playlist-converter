@@ -1,0 +1,8 @@
+<component name="CopyrightManager">
+  <settings default="renegade-master-apache2">
+    <module2copyright>
+      <element module="Application Code" copyright="renegade-master-apache2" />
+      <element module="wslyyy Code" copyright="wslyyy-mit" />
+    </module2copyright>
+  </settings>
+</component>
