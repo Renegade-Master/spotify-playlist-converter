@@ -156,3 +156,13 @@ type ResponseFingerprint struct {
 	Context  *string
 	Client   *string
 }
+
+type Action struct {
+	AddedVideoID string `json:"addedVideoId"`
+	Action       string `json:"action"`
+}
+
+type PlaylistData struct {
+	Actions    []Action `json:"actions"`
+	PlaylistID string   `json:"playlistId"`
+}
