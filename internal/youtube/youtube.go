@@ -272,34 +272,9 @@ func (yt *YouTube) CreatePlaylist(name string) (string, bool) {
 }
 
 func (yt *YouTube) AddToPlaylistUnofficial(playlistId string, trackIds ...string) error {
-	playlistItems := yt.GetPlaylistItems(playlistId)
+	filteredTrackIds := yt.filterPlaylistItems(playlistId, trackIds...)
 
-	// Check if any Tracks already exist in the Playlist
-	var badTrackIds []int
-	for _, playlistItem := range playlistItems {
-		for idx, trackId := range trackIds {
-			if playlistItem.Snippet.ResourceId.VideoId == trackId {
-				log.Printf("Track [%s] already exists in Playlist [%s]\n", trackId, playlistId)
-				badTrackIds = append(badTrackIds, idx)
-			}
-		}
-	}
-
-	// Remove Tracks that already exist
-	if len(badTrackIds) == len(trackIds) {
-		log.Printf("All Tracks are already present in the Playlist")
-		return nil
-	}
-
-	itemsRemoved := 0
-	log.Printf("Removing [%d] Tracks that already exist in Playlist [%s]\n", len(badTrackIds), playlistId)
-	for _, idx := range badTrackIds {
-		trackIds = util.RemoveIndexString(trackIds, idx-itemsRemoved)
-		itemsRemoved++
-	}
-
-	// Add all found Tracks to the Playlist
-	if _, err := yt.intClient.AddToPlaylist(&playlistId, trackIds...); err != nil {
+	if _, err := yt.intClient.AddToPlaylist(&playlistId, filteredTrackIds...); err != nil {
 		log.Printf("Error adding Tracks to Playlist [%s]: [%v]", playlistId, err)
 	}
 
@@ -307,34 +282,7 @@ func (yt *YouTube) AddToPlaylistUnofficial(playlistId string, trackIds ...string
 }
 
 func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
-	playlistItems := yt.GetPlaylistItems(playlistId)
-
-	// Check if any Tracks already exist in the Playlist
-	var badTrackIds []int
-	for _, playlistItem := range playlistItems {
-		for idx, trackId := range trackIds {
-			if playlistItem.Snippet.ResourceId.VideoId == trackId {
-				log.Printf("Track [%s] already exists in Playlist [%s]\n", trackId, playlistId)
-				badTrackIds = append(badTrackIds, idx)
-			}
-		}
-	}
-
-	// Remove Tracks that already exist
-	if len(badTrackIds) == len(trackIds) {
-		log.Printf("All Tracks are already present in the Playlist")
-		return nil
-	}
-
-	itemsRemoved := 0
-	log.Printf("Removing [%d] Tracks that already exist in Playlist [%s]\n", len(badTrackIds), playlistId)
-	for _, idx := range badTrackIds {
-		trackIds = util.RemoveIndexString(trackIds, idx-itemsRemoved)
-		itemsRemoved++
-	}
-
-	// Add all found Tracks to the Playlist
-	for _, trackId := range trackIds {
+	for _, trackId := range yt.filterPlaylistItems(playlistId, trackIds...) {
 		// ToDo: It would be nice if it was possible to add all Tracks in one call. May be possible using raw HTTP Requests instead of the library
 		call := yt.client.PlaylistItems.Insert([]string{"snippet"}, &youtube.PlaylistItem{
 			Snippet: &youtube.PlaylistItemSnippet{
@@ -357,4 +305,34 @@ func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
 	}
 
 	return nil
+}
+
+func (yt *YouTube) filterPlaylistItems(playlistId string, trackIds ...string) []string {
+	playlistItems := yt.GetPlaylistItems(playlistId)
+
+	// Check if any Tracks already exist in the Playlist
+	var badTrackIds []int
+	for _, playlistItem := range playlistItems {
+		for idx, trackId := range trackIds {
+			if playlistItem.Snippet.ResourceId.VideoId == trackId {
+				log.Printf("Track [%s] already exists in Playlist [%s]\n", trackId, playlistId)
+				badTrackIds = append(badTrackIds, idx)
+			}
+		}
+	}
+
+	// Remove Tracks that already exist
+	if len(badTrackIds) == len(trackIds) {
+		log.Printf("All Tracks are already present in the Playlist")
+		return nil
+	}
+
+	itemsRemoved := 0
+	log.Printf("Removing [%d] Tracks that already exist in Playlist [%s]\n", len(badTrackIds), playlistId)
+	for _, idx := range badTrackIds {
+		trackIds = util.RemoveIndexString(trackIds, idx-itemsRemoved)
+		itemsRemoved++
+	}
+
+	return trackIds
 }
