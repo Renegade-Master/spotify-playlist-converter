@@ -129,6 +129,8 @@ func (yt *YouTube) GetPlaylist(playlistId string) *youtube.Playlist {
 	return nil
 }
 
+// GetPlaylistItems will return all Tracks in a Playlist.
+// Uses 1 Credits
 func (yt *YouTube) GetPlaylistItems(playlistId string) []*youtube.PlaylistItem {
 	var playlistItems []*youtube.PlaylistItem
 	var nextPageToken string
@@ -163,9 +165,7 @@ func (yt *YouTube) GetPlaylistItems(playlistId string) []*youtube.PlaylistItem {
 
 // GetTrackUnofficial is a method of Searching YouTube without using Credits
 func (yt *YouTube) GetTrackUnofficial(query string, maxResults int64) string {
-	paramsTypeVideo := "EgIQAQ%3D%3D"
-
-	data, err := yt.intClient.Search(&query, &paramsTypeVideo, nil)
+	data, err := yt.intClient.Search(&query, nil)
 	if err != nil {
 		log.Fatalf("Error retrieving track: %s", err)
 	}
@@ -197,6 +197,8 @@ func (yt *YouTube) GetTrackUnofficial(query string, maxResults int64) string {
 	return weightedTracks[0].Id
 }
 
+// GetTrack retrieves the most similar Track to the given query.
+// Uses 100 Credits.
 func (yt *YouTube) GetTrack(query string, maxResults int64) *youtube.SearchResult {
 	log.Printf("Searching for: [%s]\n", query)
 
@@ -237,6 +239,7 @@ func (yt *YouTube) GetTrack(query string, maxResults int64) *youtube.SearchResul
 // CreatePlaylist will create a YouTube Playlist if it does not already exist.
 // Returns the Playlist ID of the new Playlist, or the existing Playlist by the
 // same name, as well as a Boolean to indicate if this is a new Playlist.
+// Uses 50 Credits.
 func (yt *YouTube) CreatePlaylist(name string) (string, bool) {
 	playlists := yt.GetPlaylists()
 	for _, playlist := range playlists {
@@ -266,6 +269,41 @@ func (yt *YouTube) CreatePlaylist(name string) (string, bool) {
 
 	log.Printf("Created Playlist: [%s], ID: [%s]\n", response.Snippet.Title, response.Id)
 	return response.Id, true
+}
+
+func (yt *YouTube) AddToPlaylistUnofficial(playlistId string, trackIds ...string) error {
+	playlistItems := yt.GetPlaylistItems(playlistId)
+
+	// Check if any Tracks already exist in the Playlist
+	var badTrackIds []int
+	for _, playlistItem := range playlistItems {
+		for idx, trackId := range trackIds {
+			if playlistItem.Snippet.ResourceId.VideoId == trackId {
+				log.Printf("Track [%s] already exists in Playlist [%s]\n", trackId, playlistId)
+				badTrackIds = append(badTrackIds, idx)
+			}
+		}
+	}
+
+	// Remove Tracks that already exist
+	if len(badTrackIds) == len(trackIds) {
+		log.Printf("All Tracks are already present in the Playlist")
+		return nil
+	}
+
+	itemsRemoved := 0
+	log.Printf("Removing [%d] Tracks that already exist in Playlist [%s]\n", len(badTrackIds), playlistId)
+	for _, idx := range badTrackIds {
+		trackIds = util.RemoveIndexString(trackIds, idx-itemsRemoved)
+		itemsRemoved++
+	}
+
+	// Add all found Tracks to the Playlist
+	if _, err := yt.intClient.AddToPlaylist(&playlistId, trackIds...); err != nil {
+		log.Printf("Error adding Tracks to Playlist [%s]: [%v]", playlistId, err)
+	}
+
+	return nil
 }
 
 func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {

@@ -23,6 +23,7 @@
 package innertube
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -56,13 +57,37 @@ func (it *InnerTube) Call(endpoint string, params map[string]string, body map[st
 	return response, nil
 }
 
-func (it *InnerTube) Search(query *string, params *string, continuation *string) (map[string]interface{}, error) {
+func (it *InnerTube) Search(query *string, continuation *string) (map[string]interface{}, error) {
 	body := map[string]interface{}{
 		"query":        query,
-		"params":       params,
+		"params":       "EgIQAQ%3D%3D",
 		"continuation": continuation,
 	}
+
 	//log.Println("body: ", body)
 	//log.Println("Filter(body): ", Filter(body))
 	return it.Call("SEARCH", nil, Filter(body))
+}
+
+func (it *InnerTube) AddToPlaylist(playlistId *string, trackIds ...string) (map[string]interface{}, error) {
+	var actions []map[string]interface{}
+
+	for _, trackId := range trackIds {
+		actions = append(actions, map[string]interface{}{
+			"addedVideoId": trackId,
+			"action":       "ACTION_ADD_VIDEO",
+		})
+	}
+
+	body := map[string]interface{}{
+		"actions":      actions,
+		"playlistId":   playlistId,
+		"params":       "EgIQAw%3D%3D",
+		"continuation": nil,
+	}
+
+	log.Println("AddToPlaylist body: ", body)
+	log.Println("Filter(body): ", Filter(body))
+
+	return it.Call("BROWSE/EDIT_PLAYLIST", nil, Filter(body))
 }
