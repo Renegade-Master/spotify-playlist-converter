@@ -23,9 +23,18 @@
 package innertube
 
 import (
+	"context"
+	"io"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
+	"time"
+
+	"github.com/pkg/browser"
+	"golang.org/x/oauth2"
 )
+
+var ch = make(chan string)
 
 // InnerTube struct
 type InnerTube struct {
@@ -39,10 +48,33 @@ type Adaptor interface {
 
 // NewInnerTube creates a new InnerTube instance
 func NewInnerTube() (*InnerTube, error) {
-	context := GetContext("WEB")
+	log.Println("Start Cookie Extract Attempt")
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{
+		Jar:     jar,
+		Timeout: 15 * time.Second,
+	}
 
+	req, err := http.NewRequest("GET", "https://music.youtube.com/account/login/", nil)
+	if err != nil {
+		log.Fatalf("Error creating request: [%v]", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalf("Error retrieving response: [%v]", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusFound {
+		body, _ := io.ReadAll(resp.Body)
+		log.Fatalf("Error retrieving response: [%v] %s", resp.StatusCode, string(body))
+	}
+	log.Println("Cookie Extract Attempt Complete")
+
+	ytContext := GetContext("WEB")
 	return &InnerTube{
-		Adaptor: NewInnerTubeAdaptor(context, &http.Client{}),
+		Adaptor: NewInnerTubeAdaptor(ytContext, &http.Client{Jar: jar}),
 	}, nil
 }
 
@@ -90,4 +122,50 @@ func (it *InnerTube) AddToPlaylist(playlistId *string, trackIds ...string) (map[
 	log.Println("Filter(body): ", Filter(body))
 
 	return it.Call("BROWSE/EDIT_PLAYLIST", nil, Filter(body))
+}
+
+// getTokenFromWeb requests a token from the web, then returns the retrieved token.
+func getCookiesFromWeb(config *oauth2.Config) *oauth2.Token {
+	http.HandleFunc("/", completeAuth)
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Got request for favicon.ico")
+	})
+
+	go func() {
+		log.Println("Starting HTTP server")
+		err := http.ListenAndServe(":8002", nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	log.Printf("Go to the following link in your browser:\n%v\n", authURL)
+
+	if err := browser.OpenURL(authURL); err != nil {
+		log.Printf("Could not open browser automatically. Please visit the URL above to log in: Error: [%v]", err)
+	}
+
+	authCode := <-ch
+
+	tok, err := config.Exchange(context.TODO(), authCode)
+	if err != nil {
+		log.Fatalf("Unable to retrieve token from web: %v", err)
+	}
+	return tok
+}
+
+func completeAuth(w http.ResponseWriter, r *http.Request) {
+	log.Println("Got request for:", r.URL.String())
+
+	values := r.URL.Query()
+	if e := values.Get("error"); e != "" {
+		log.Fatalf(`return nil, errors.New("spotify: auth failed - " + e)`)
+	}
+	code := values.Get("code")
+	if code == "" {
+		log.Fatalf(`return nil, errors.New("spotify: didn't get access code")`)
+	}
+
+	r.Context().Done()
 }
