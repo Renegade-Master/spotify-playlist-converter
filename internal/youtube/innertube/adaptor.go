@@ -131,7 +131,12 @@ func (ita *InnerTubeAdaptor) Dispatch(endpoint string, params map[string]string,
 		return nil, err
 	}
 
-	// responseData["responseContext"]
+	if responseStatus, ok := responseData["status"]; ok {
+		if strings.Compare(responseStatus.(string), "STATUS_FAILED") == 0 {
+			return nil, fmt.Errorf("request failed")
+		}
+	}
+
 	if responseContext, ok := responseData["responseContext"].(map[string]interface{}); ok {
 		if visitorData, ok := responseContext["visitorData"].(string); ok {
 			ita.context.XGoogVisitorId = visitorData
