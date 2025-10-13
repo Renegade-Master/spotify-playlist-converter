@@ -34,9 +34,8 @@ import (
 	"time"
 
 	"github.com/browserutils/kooky"
-	_ "github.com/browserutils/kooky/browser/all"
-	"github.com/pkg/browser"
-	"golang.org/x/oauth2"
+	_ "github.com/browserutils/kooky/browser/chrome"
+	_ "github.com/browserutils/kooky/browser/firefox"
 )
 
 var ch = make(chan string)
@@ -56,32 +55,32 @@ func NewInnerTube() (*InnerTube, error) {
 	log.Println("Start Cookie Extract Attempt")
 
 	for _, store := range kooky.FindAllCookieStores(context.Background()) {
-		log.Printf("Found Store: [%s]", store.Browser())
+		//log.Printf("Found Store: [%s]", store.Browser())
 
-		if store.Browser() == "firefox" {
-			for cookie, err := range store.TraverseCookies(kooky.Valid, kooky.DomainHasSuffix(".youtube.com")) {
-				if errors.Is(err, fs.ErrNotExist) {
-					break
-				} else if err != nil {
-					log.Printf("Could not open Cookie File: [%s]", err.Error())
-					break
-				}
+		for cookie, err := range store.TraverseCookies(kooky.Valid,
+			kooky.DomainHasSuffix(".youtube.com"), kooky.Name("SAPISID")) {
 
-				if cookie == nil {
-					log.Printf("nil cookie")
-					break
-				} else {
-					//log.Printf("[%s] Cookie: [%s]", store.Browser(), cookie.String())
-					if cookie.Name == "SAPISID" {
-						log.Printf("[%s] Found SAPISID Cookie: [%s]", store.Browser(), cookie.String())
+			if errors.Is(err, fs.ErrNotExist) {
+				break
+			} else if err != nil {
+				log.Printf("[%s] Could not open Cookie File: [%s]", store.Browser(), err.Error())
+				break
+			}
 
-						timestamp := fmt.Sprintf("%d", time.Now().Unix())
-						origin := "https://www.youtube.com"
-						baseString := fmt.Sprintf("%s %s %s", timestamp, cookie.String(), origin)
+			if cookie == nil {
+				log.Printf("[%s] nil Cookie detected. Skipping...", store.Browser())
+				break
+			} else {
+				//log.Printf("[%s] Cookie: [%s]", store.Browser(), cookie.String())
+				if cookie.Name == "SAPISID" {
+					log.Printf("[%s] Found SAPISID Cookie: [%s]", store.Browser(), cookie.String())
 
-						hash := sha1.Sum([]byte(baseString))
-						log.Printf("SAPISIDHASH %s_%s", timestamp, hex.EncodeToString(hash[:]))
-					}
+					timestamp := fmt.Sprintf("%d", time.Now().Unix())
+					origin := "https://www.youtube.com"
+					baseString := fmt.Sprintf("%s %s %s", timestamp, cookie.String(), origin)
+
+					hash := sha1.Sum([]byte(baseString))
+					log.Printf("[%s] SAPISIDHASH %s_%s", store.Browser(), timestamp, hex.EncodeToString(hash[:]))
 				}
 			}
 		}
@@ -139,50 +138,4 @@ func (it *InnerTube) AddToPlaylist(playlistId *string, trackIds ...string) (map[
 	log.Println("Filter(body): ", Filter(body))
 
 	return it.Call("BROWSE/EDIT_PLAYLIST", nil, Filter(body))
-}
-
-// getTokenFromWeb requests a token from the web, then returns the retrieved token.
-func getCookiesFromWeb(config *oauth2.Config) *oauth2.Token {
-	http.HandleFunc("/", completeAuth)
-	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Got request for favicon.ico")
-	})
-
-	go func() {
-		log.Println("Starting HTTP server")
-		err := http.ListenAndServe(":8002", nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	log.Printf("Go to the following link in your browser:\n%v\n", authURL)
-
-	if err := browser.OpenURL(authURL); err != nil {
-		log.Printf("Could not open browser automatically. Please visit the URL above to log in: Error: [%v]", err)
-	}
-
-	authCode := <-ch
-
-	tok, err := config.Exchange(context.TODO(), authCode)
-	if err != nil {
-		log.Fatalf("Unable to retrieve token from web: %v", err)
-	}
-	return tok
-}
-
-func completeAuth(w http.ResponseWriter, r *http.Request) {
-	log.Println("Got request for:", r.URL.String())
-
-	values := r.URL.Query()
-	if e := values.Get("error"); e != "" {
-		log.Fatalf(`return nil, errors.New("spotify: auth failed - " + e)`)
-	}
-	code := values.Get("code")
-	if code == "" {
-		log.Fatalf(`return nil, errors.New("spotify: didn't get access code")`)
-	}
-
-	r.Context().Done()
 }
