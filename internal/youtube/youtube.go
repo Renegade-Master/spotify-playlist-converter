@@ -32,10 +32,10 @@ type YouTube struct {
 
 func NewYouTube() *YouTube {
 	innerTubeService, _ := innertube.NewInnerTube()
-	youtubeService := createYouTubeService()
+	//youtubeService := createYouTubeService()
 
 	return &YouTube{
-		client:    youtubeService,
+		//client:    youtubeService,
 		intClient: innerTubeService,
 	}
 }

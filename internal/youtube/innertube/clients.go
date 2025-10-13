@@ -24,12 +24,17 @@ package innertube
 
 import (
 	"context"
-	"io"
+	"crypto/sha1"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
-	"net/http/cookiejar"
 	"time"
 
+	"github.com/browserutils/kooky"
+	_ "github.com/browserutils/kooky/browser/all"
 	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
 )
@@ -49,32 +54,44 @@ type Adaptor interface {
 // NewInnerTube creates a new InnerTube instance
 func NewInnerTube() (*InnerTube, error) {
 	log.Println("Start Cookie Extract Attempt")
-	jar, _ := cookiejar.New(nil)
-	client := &http.Client{
-		Jar:     jar,
-		Timeout: 15 * time.Second,
+
+	for _, store := range kooky.FindAllCookieStores(context.Background()) {
+		log.Printf("Found Store: [%s]", store.Browser())
+
+		if store.Browser() == "firefox" {
+			for cookie, err := range store.TraverseCookies(kooky.Valid, kooky.DomainHasSuffix(".youtube.com")) {
+				if errors.Is(err, fs.ErrNotExist) {
+					break
+				} else if err != nil {
+					log.Printf("Could not open Cookie File: [%s]", err.Error())
+					break
+				}
+
+				if cookie == nil {
+					log.Printf("nil cookie")
+					break
+				} else {
+					//log.Printf("[%s] Cookie: [%s]", store.Browser(), cookie.String())
+					if cookie.Name == "SAPISID" {
+						log.Printf("[%s] Found SAPISID Cookie: [%s]", store.Browser(), cookie.String())
+
+						timestamp := fmt.Sprintf("%d", time.Now().Unix())
+						origin := "https://www.youtube.com"
+						baseString := fmt.Sprintf("%s %s %s", timestamp, cookie.String(), origin)
+
+						hash := sha1.Sum([]byte(baseString))
+						log.Printf("SAPISIDHASH %s_%s", timestamp, hex.EncodeToString(hash[:]))
+					}
+				}
+			}
+		}
 	}
 
-	req, err := http.NewRequest("GET", "https://music.youtube.com/account/login/", nil)
-	if err != nil {
-		log.Fatalf("Error creating request: [%v]", err)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalf("Error retrieving response: [%v]", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusFound {
-		body, _ := io.ReadAll(resp.Body)
-		log.Fatalf("Error retrieving response: [%v] %s", resp.StatusCode, string(body))
-	}
 	log.Println("Cookie Extract Attempt Complete")
 
 	ytContext := GetContext("WEB")
 	return &InnerTube{
-		Adaptor: NewInnerTubeAdaptor(ytContext, &http.Client{Jar: jar}),
+		Adaptor: NewInnerTubeAdaptor(ytContext, &http.Client{}),
 	}, nil
 }
 
