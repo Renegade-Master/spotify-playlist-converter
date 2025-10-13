@@ -71,9 +71,11 @@ func (c *ClientContext) Params() map[string]string {
 	params := map[string]string{
 		"alt": "json",
 	}
+
 	if c.APIKey != "" {
 		params["key"] = c.APIKey
 	}
+
 	return params
 }
 
@@ -86,11 +88,12 @@ func (c *ClientContext) Context() map[string]string {
 
 func (c *ClientContext) Headers() http.Header {
 	headers2 := http.Header{}
-	headers2.Add("Host", config.Host)
 	headers2.Add("Accept", "*/*")
 	headers2.Add("Accept-Encoding", "gzip, deflate")
+	headers2.Add("Authorization", "SAPISIDHASH XXX SAPISID1PHASH YYY SAPISID3PHASH ZZZ") // ToDo: What is needed to generate these Hashes
 	headers2.Add("Connection", "keep-alive")
 	headers2.Add("Content-Type", "application/json")
+	headers2.Add("Host", config.Host)
 	headers2.Add("X-Goog-Api-Format-Version", "1")
 	headers2.Add("X-YouTube-Client-Name", fmt.Sprintf("%s", strconv.Itoa(c.ClientID)))
 	headers2.Add("X-YouTube-Client-Version", c.ClientVersion)

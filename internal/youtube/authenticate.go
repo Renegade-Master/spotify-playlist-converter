@@ -98,7 +98,7 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	return tok
 }
 
-func completeAuth(w http.ResponseWriter, r *http.Request) {
+func completeAuth(_ http.ResponseWriter, r *http.Request) {
 	log.Println("Got request for:", r.URL.String())
 
 	values := r.URL.Query()

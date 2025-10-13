@@ -31,11 +31,11 @@ type YouTube struct {
 }
 
 func NewYouTube() *YouTube {
-	youtubeService := createYouTubeService()
+	//youtubeService := createYouTubeService()
 	innerTubeService, _ := innertube.NewInnerTube()
 
 	return &YouTube{
-		client:    youtubeService,
+		//client:    youtubeService,
 		intClient: innerTubeService,
 	}
 }
@@ -133,6 +133,7 @@ func (yt *YouTube) GetPlaylist(playlistId string) *youtube.Playlist {
 // Uses 1 Credits
 func (yt *YouTube) GetPlaylistItems(playlistId string) []*youtube.PlaylistItem {
 	var playlistItems []*youtube.PlaylistItem
+	return playlistItems // ToDo: Early return to make testing easier
 	var nextPageToken string
 
 	for {

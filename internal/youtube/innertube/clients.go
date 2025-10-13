@@ -38,8 +38,6 @@ import (
 	_ "github.com/browserutils/kooky/browser/firefox"
 )
 
-var ch = make(chan string)
-
 // InnerTube struct
 type InnerTube struct {
 	Adaptor Adaptor

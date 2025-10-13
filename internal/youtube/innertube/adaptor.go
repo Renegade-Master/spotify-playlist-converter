@@ -63,7 +63,8 @@ func (ita *InnerTubeAdaptor) buildRequest(endpoint string, params map[string]str
 	req.Header = ita.context.Headers()
 
 	q := req.URL.Query()
-	for key, value := range params {
+
+	for key, value := range ita.context.Params() {
 		q.Add(key, value)
 	}
 	req.URL.RawQuery = q.Encode()
