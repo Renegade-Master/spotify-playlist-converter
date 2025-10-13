@@ -23,7 +23,19 @@
 package innertube
 
 import (
+	"context"
+	"crypto/sha1"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"io/fs"
+	"log"
 	"net/http"
+	"time"
+
+	"github.com/browserutils/kooky"
+	_ "github.com/browserutils/kooky/browser/chrome"
+	_ "github.com/browserutils/kooky/browser/firefox"
 )
 
 // InnerTube struct
@@ -38,10 +50,45 @@ type Adaptor interface {
 
 // NewInnerTube creates a new InnerTube instance
 func NewInnerTube() (*InnerTube, error) {
-	context := GetContext("WEB")
+	log.Println("Start Cookie Extract Attempt")
 
+	for _, store := range kooky.FindAllCookieStores(context.Background()) {
+		//log.Printf("Found Store: [%s]", store.Browser())
+
+		for cookie, err := range store.TraverseCookies(kooky.Valid,
+			kooky.DomainHasSuffix(".youtube.com"), kooky.Name("SAPISID")) {
+
+			if errors.Is(err, fs.ErrNotExist) {
+				break
+			} else if err != nil {
+				log.Printf("[%s] Could not open Cookie File: [%s]", store.Browser(), err.Error())
+				break
+			}
+
+			if cookie == nil {
+				log.Printf("[%s] nil Cookie detected. Skipping...", store.Browser())
+				break
+			} else {
+				//log.Printf("[%s] Cookie: [%s]", store.Browser(), cookie.String())
+				if cookie.Name == "SAPISID" {
+					log.Printf("[%s] Found SAPISID Cookie: [%s]", store.Browser(), cookie.String())
+
+					timestamp := fmt.Sprintf("%d", time.Now().Unix())
+					origin := "https://www.youtube.com"
+					baseString := fmt.Sprintf("%s %s %s", timestamp, cookie.String(), origin)
+
+					hash := sha1.Sum([]byte(baseString))
+					log.Printf("[%s] SAPISIDHASH %s_%s", store.Browser(), timestamp, hex.EncodeToString(hash[:]))
+				}
+			}
+		}
+	}
+
+	log.Println("Cookie Extract Attempt Complete")
+
+	ytContext := GetContext("WEB")
 	return &InnerTube{
-		Adaptor: NewInnerTubeAdaptor(context, &http.Client{}),
+		Adaptor: NewInnerTubeAdaptor(ytContext, &http.Client{}),
 	}, nil
 }
 
@@ -56,13 +103,37 @@ func (it *InnerTube) Call(endpoint string, params map[string]string, body map[st
 	return response, nil
 }
 
-func (it *InnerTube) Search(query *string, params *string, continuation *string) (map[string]interface{}, error) {
+func (it *InnerTube) Search(query *string, continuation *string) (map[string]interface{}, error) {
 	body := map[string]interface{}{
 		"query":        query,
-		"params":       params,
+		"params":       "EgIQAQ%3D%3D",
 		"continuation": continuation,
 	}
+
 	//log.Println("body: ", body)
 	//log.Println("Filter(body): ", Filter(body))
 	return it.Call("SEARCH", nil, Filter(body))
+}
+
+func (it *InnerTube) AddToPlaylist(playlistId *string, trackIds ...string) (map[string]interface{}, error) {
+	var actions []map[string]interface{}
+
+	for _, trackId := range trackIds {
+		actions = append(actions, map[string]interface{}{
+			"addedVideoId": trackId,
+			"action":       "ACTION_ADD_VIDEO",
+		})
+	}
+
+	body := map[string]interface{}{
+		"actions":      actions,
+		"playlistId":   playlistId,
+		"params":       "EgIQAw%3D%3D",
+		"continuation": nil,
+	}
+
+	log.Println("AddToPlaylist body: ", body)
+	log.Println("Filter(body): ", Filter(body))
+
+	return it.Call("BROWSE/EDIT_PLAYLIST", nil, Filter(body))
 }

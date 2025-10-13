@@ -7,6 +7,7 @@
     <package value="github.com/Renegade-Master/spotify-playlist-converter/cmd/playlistConverter" />
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$/cmd/playlistConverter/main.go" />
+    <output_directory value="$PROJECT_DIR$/out" />
     <method v="2" />
   </configuration>
 </component>

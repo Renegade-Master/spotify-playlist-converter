@@ -139,7 +139,8 @@ func (s *Spotify) AddPlaylistToYouTube(playlistId spotify.ID, yt *youtube.YouTub
 		tracksToAdd = append(tracksToAdd, ytTrack)
 	}
 
-	yt.AddToPlaylist(ytPlaylistId, tracksToAdd...)
+	//yt.AddToPlaylist(ytPlaylistId, tracksToAdd...)
+	yt.AddToPlaylistUnofficial(ytPlaylistId, tracksToAdd...)
 }
 
 func (s *Spotify) AddAllPlaylists(yt *youtube.YouTube) {

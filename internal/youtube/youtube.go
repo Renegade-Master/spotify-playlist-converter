@@ -31,11 +31,11 @@ type YouTube struct {
 }
 
 func NewYouTube() *YouTube {
-	youtubeService := createYouTubeService()
+	//youtubeService := createYouTubeService()
 	innerTubeService, _ := innertube.NewInnerTube()
 
 	return &YouTube{
-		client:    youtubeService,
+		//client:    youtubeService,
 		intClient: innerTubeService,
 	}
 }
@@ -129,8 +129,11 @@ func (yt *YouTube) GetPlaylist(playlistId string) *youtube.Playlist {
 	return nil
 }
 
+// GetPlaylistItems will return all Tracks in a Playlist.
+// Uses 1 Credits
 func (yt *YouTube) GetPlaylistItems(playlistId string) []*youtube.PlaylistItem {
 	var playlistItems []*youtube.PlaylistItem
+	return playlistItems // ToDo: Early return to make testing easier
 	var nextPageToken string
 
 	for {
@@ -163,9 +166,7 @@ func (yt *YouTube) GetPlaylistItems(playlistId string) []*youtube.PlaylistItem {
 
 // GetTrackUnofficial is a method of Searching YouTube without using Credits
 func (yt *YouTube) GetTrackUnofficial(query string, maxResults int64) string {
-	paramsTypeVideo := "EgIQAQ%3D%3D"
-
-	data, err := yt.intClient.Search(&query, &paramsTypeVideo, nil)
+	data, err := yt.intClient.Search(&query, nil)
 	if err != nil {
 		log.Fatalf("Error retrieving track: %s", err)
 	}
@@ -197,6 +198,8 @@ func (yt *YouTube) GetTrackUnofficial(query string, maxResults int64) string {
 	return weightedTracks[0].Id
 }
 
+// GetTrack retrieves the most similar Track to the given query.
+// Uses 100 Credits.
 func (yt *YouTube) GetTrack(query string, maxResults int64) *youtube.SearchResult {
 	log.Printf("Searching for: [%s]\n", query)
 
@@ -237,6 +240,7 @@ func (yt *YouTube) GetTrack(query string, maxResults int64) *youtube.SearchResul
 // CreatePlaylist will create a YouTube Playlist if it does not already exist.
 // Returns the Playlist ID of the new Playlist, or the existing Playlist by the
 // same name, as well as a Boolean to indicate if this is a new Playlist.
+// Uses 50 Credits.
 func (yt *YouTube) CreatePlaylist(name string) (string, bool) {
 	playlists := yt.GetPlaylists()
 	for _, playlist := range playlists {
@@ -268,7 +272,43 @@ func (yt *YouTube) CreatePlaylist(name string) (string, bool) {
 	return response.Id, true
 }
 
+func (yt *YouTube) AddToPlaylistUnofficial(playlistId string, trackIds ...string) error {
+	filteredTrackIds := yt.filterPlaylistItems(playlistId, trackIds...)
+
+	if _, err := yt.intClient.AddToPlaylist(&playlistId, filteredTrackIds...); err != nil {
+		log.Printf("Error adding Tracks to Playlist [%s]: [%v]", playlistId, err)
+	}
+
+	return nil
+}
+
 func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
+	for _, trackId := range yt.filterPlaylistItems(playlistId, trackIds...) {
+		// ToDo: It would be nice if it was possible to add all Tracks in one call. May be possible using raw HTTP Requests instead of the library
+		call := yt.client.PlaylistItems.Insert([]string{"snippet"}, &youtube.PlaylistItem{
+			Snippet: &youtube.PlaylistItemSnippet{
+				PlaylistId: playlistId,
+				ResourceId: &youtube.ResourceId{
+					Kind:    "youtube#video",
+					VideoId: trackId,
+				},
+			},
+		})
+
+		_, err := call.Do()
+		if err != nil {
+			log.Printf("Error adding Track ID [%s] to Playlist [%s]: [%v]", trackId, playlistId, err)
+			return err
+		}
+		yt.Credits += 50
+
+		log.Printf("Added Track ID [%s] to Playlist [%s]\n", trackId, playlistId)
+	}
+
+	return nil
+}
+
+func (yt *YouTube) filterPlaylistItems(playlistId string, trackIds ...string) []string {
 	playlistItems := yt.GetPlaylistItems(playlistId)
 
 	// Check if any Tracks already exist in the Playlist
@@ -295,28 +335,5 @@ func (yt *YouTube) AddToPlaylist(playlistId string, trackIds ...string) error {
 		itemsRemoved++
 	}
 
-	// Add all found Tracks to the Playlist
-	for _, trackId := range trackIds {
-		// ToDo: It would be nice if it was possible to add all Tracks in one call. May be possible using raw HTTP Requests instead of the library
-		call := yt.client.PlaylistItems.Insert([]string{"snippet"}, &youtube.PlaylistItem{
-			Snippet: &youtube.PlaylistItemSnippet{
-				PlaylistId: playlistId,
-				ResourceId: &youtube.ResourceId{
-					Kind:    "youtube#video",
-					VideoId: trackId,
-				},
-			},
-		})
-
-		_, err := call.Do()
-		if err != nil {
-			log.Printf("Error adding Track ID [%s] to Playlist [%s]: [%v]", trackId, playlistId, err)
-			return err
-		}
-		yt.Credits += 50
-
-		log.Printf("Added Track ID [%s] to Playlist [%s]\n", trackId, playlistId)
-	}
-
-	return nil
+	return trackIds
 }
