@@ -52,8 +52,14 @@ type Adaptor interface {
 func NewInnerTube() (*InnerTube, error) {
 	log.Println("Start Cookie Extract Attempt")
 
-	for _, store := range kooky.FindAllCookieStores(context.Background()) {
-		//log.Printf("Found Store: [%s]", store.Browser())
+	cookieStores := kooky.FindAllCookieStores(context.Background())
+	if cookieStores == nil {
+		return nil, errors.New("could not find cookie stores")
+	}
+
+	var foundCookies = 0
+	for _, store := range cookieStores {
+		log.Printf("Found Store: [%s]", store.Browser())
 
 		for cookie, err := range store.TraverseCookies(kooky.Valid,
 			kooky.DomainHasSuffix(".youtube.com"), kooky.Name("SAPISID")) {
@@ -69,7 +75,8 @@ func NewInnerTube() (*InnerTube, error) {
 				log.Printf("[%s] nil Cookie detected. Skipping...", store.Browser())
 				break
 			} else {
-				//log.Printf("[%s] Cookie: [%s]", store.Browser(), cookie.String())
+				log.Printf("Found YouTube Cookie: [%s]", cookie.Name)
+				log.Printf("[%s] Cookie: [%s]", store.Browser(), cookie.String())
 				if cookie.Name == "SAPISID" {
 					log.Printf("[%s] Found SAPISID Cookie: [%s]", store.Browser(), cookie.String())
 
@@ -79,9 +86,15 @@ func NewInnerTube() (*InnerTube, error) {
 
 					hash := sha1.Sum([]byte(baseString))
 					log.Printf("[%s] SAPISIDHASH %s_%s", store.Browser(), timestamp, hex.EncodeToString(hash[:]))
+
+					foundCookies++
 				}
 			}
 		}
+	}
+
+	if foundCookies == 0 {
+		return nil, errors.New("could not find YouTube cookie")
 	}
 
 	log.Println("Cookie Extract Attempt Complete")

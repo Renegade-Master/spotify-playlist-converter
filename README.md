@@ -46,6 +46,11 @@ $ playlistConverter
 
 A webpage will be opened in your browser, or you will be shown a URL to open manually, for both Spotify and YouTube.
 
+## Notes
+
+It appears that Firefox Containers cause issues with the Cookie retrieval, so it is recommended to sign into your
+YouTube account in a less complex browser such as Chrome.
+
 ## References
 
 Spotify API:

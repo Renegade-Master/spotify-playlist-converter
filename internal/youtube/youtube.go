@@ -32,7 +32,19 @@ type YouTube struct {
 
 func NewYouTube() *YouTube {
 	//youtubeService := createYouTubeService()
-	innerTubeService, _ := innertube.NewInnerTube()
+
+	var innerTubeService *innertube.InnerTube
+	var err error
+
+	var maxRetries = 3
+	for i := 0; i < maxRetries; i++ {
+		innerTubeService, err = innertube.NewInnerTube()
+		if err != nil {
+			log.Printf("encountered error creating InnerTube: [%s]", err)
+		} else {
+			break
+		}
+	}
 
 	return &YouTube{
 		//client:    youtubeService,
