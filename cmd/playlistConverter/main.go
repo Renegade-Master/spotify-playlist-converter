@@ -19,16 +19,17 @@ package main
 import (
 	"log"
 
-	"github.com/Renegade-Master/spotify-playlist-converter/internal/spotify"
 	"github.com/Renegade-Master/spotify-playlist-converter/internal/youtube"
 )
 
 func main() {
-	spotifyClient := spotify.NewSpotify()
+	//spotifyClient := spotify.NewSpotify()
 	youtubeClient := youtube.NewYouTube()
 
-	spotifyPlaylistId := spotifyClient.GetPlaylists()[0].ID
-	spotifyClient.AddPlaylistToYouTube(spotifyPlaylistId, youtubeClient)
+	youtubeClient.AddToPlaylistUnofficial("PLxVaNwXES-XpMFj509b5lZFcmr7RajR5I", "IDZK13iPreA")
+
+	//spotifyPlaylistId := spotifyClient.GetPlaylists()[0].ID
+	//spotifyClient.AddPlaylistToYouTube(spotifyPlaylistId, youtubeClient)
 
 	//spotifyClient.AddAllPlaylists(&youtubeClient)
 
